@@ -1,16 +1,18 @@
-from __future__ import print_function, division
-
 import numpy as np
 
 from simulator.MetricsCommon import MetricsCommon
 
 class Metrics(MetricsCommon):
-    def __init__(self, *args, **kwargs):
-        super(Metrics, self).__init__(*args, **kwargs)
+    METRIC_GENERIC_PATH_END = 3001
+    METRIC_GENERIC_SOURCE_DROPPED = 3002
+    METRIC_GENERIC_PATH_DROPPED = 3003
 
-        self.register('M-PE', self._process_PATH_END)
-        self.register('M-SD', self._process_SOURCE_DROPPED)
-        self.register('M-PD', self._process_PATH_DROPPED)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.register_generic(self.METRIC_GENERIC_PATH_END, self._process_PATH_END)
+        self.register_generic(self.METRIC_GENERIC_SOURCE_DROPPED, self._process_SOURCE_DROPPED)
+        self.register_generic(self.METRIC_GENERIC_PATH_DROPPED, self._process_PATH_DROPPED)
 
         self._paths_reached_end = []
         self._source_dropped = []

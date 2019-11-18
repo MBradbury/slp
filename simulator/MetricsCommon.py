@@ -1395,11 +1395,11 @@ class RssiMetricsCommon(MetricsCommon):
         d = OrderedDict()
         return d
 
-
-METRIC_GENERIC_DUTY_CYCLE_START = 2013
-
 class DutyCycleMetricsCommon(MetricsCommon):
     """For algorithms that duty cycle the radio."""
+
+    METRIC_GENERIC_DUTY_CYCLE_START = 2013
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1413,7 +1413,7 @@ class DutyCycleMetricsCommon(MetricsCommon):
         self.register('LedsC', self._process_leds_event)
         self.register('LedsCooja', self._process_leds_cooja_event)
 
-        self.register_generic(METRIC_GENERIC_DUTY_CYCLE_START, self._process_duty_cycle_start)
+        self.register_generic(self.METRIC_GENERIC_DUTY_CYCLE_START, self._process_duty_cycle_start)
 
     def _process_leds_event(self, d_or_e, node_id, time, detail):
         (led, status) = detail.split(',')

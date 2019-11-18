@@ -2,6 +2,7 @@
 #include "Common.h"
 #include "SendReceiveFunctions.h"
 #include "NeighbourDetail.h"
+#include "HopDistance.h"
 
 #include "NormalMessage.h"
 #include "AwayMessage.h"
@@ -10,18 +11,18 @@
 #include <Timer.h>
 #include <TinyError.h>
 
-#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, msg->source_distance + 1)
-#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, msg->landmark_distance + 1)
-#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, BOTTOM, BOTTOM, BOTTOM)
+#define METRIC_RCV_NORMAL(msg) METRIC_RCV(Normal, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->source_distance))
+#define METRIC_RCV_AWAY(msg) METRIC_RCV(Away, source_addr, msg->source_id, msg->sequence_number, hop_distance_increment(msg->landmark_distance))
+#define METRIC_RCV_BEACON(msg) METRIC_RCV(Beacon, source_addr, AM_BROADCAST_ADDR, UNKNOWN_SEQNO, UNKNOWN_HOP_DISTANCE)
 
 typedef struct
 {
-	int16_t distance;
+	hop_distance_t distance;
 } distance_container_t;
 
 void distance_container_update(distance_container_t* find, distance_container_t const* given)
 {
-	find->distance = minbot(find->distance, given->distance);
+	find->distance = hop_distance_min(find->distance, given->distance);
 }
 
 void distance_container_print(const char* name, size_t i, am_addr_t address, distance_container_t const* contents)
@@ -40,10 +41,7 @@ DEFINE_NEIGHBOUR_DETAIL(distance_container_t, distance, distance_container_updat
 
 #define UPDATE_LANDMARK_DISTANCE(rcvd, name) \
 { \
-	if (rcvd->name != BOTTOM) \
-	{ \
-		landmark_distance = minbot(landmark_distance, rcvd->name + 1); \
-	} \
+	landmark_distance = hop_distance_min_nocheck(landmark_distance, hop_distance_increment(rcvd->name)); \
 }
 
 module SourceBroadcasterC
@@ -86,40 +84,28 @@ module SourceBroadcasterC
 
 implementation 
 {
-	enum
-	{
-		SourceNode, SinkNode, NormalNode
-	};
-
 	typedef enum
 	{
-		UnknownSet = 0, CloserSet = (1 << 0), FurtherSet = (1 << 1)
+		UnknownSet = 0,
+		CloserSet = (1 << 0),
+		FurtherSet = (1 << 1)
 	} SetType;
 
-	int16_t landmark_distance = BOTTOM;
+	hop_distance_t landmark_distance;
 
 	distance_neighbours_t neighbours;
 
-	bool busy = FALSE;
+	bool received_beacon;
+
+	bool busy;
 	message_t packet;
 
-	unsigned int extra_to_send = 0;
-
-	// Produces a random float between 0 and 1
-	float random_float()
+	uint16_t random_interval(uint16_t min, uint16_t max)
 	{
-		// There appears to be problem with the 32 bit random number generator
-		// in TinyOS that means it will not generate numbers in the full range
-		// that a 32 bit integer can hold. So use the 16 bit value instead.
-		// With the 16 bit integer we get better float values to compared to the
-		// fake source probability.
-		// Ref: https://github.com/tinyos/tinyos-main/issues/248
-		const uint16_t rnd = call Random.rand16();
-
-		return ((float)rnd) / UINT16_MAX;
+		return min + call Random.rand16() / (UINT16_MAX / (max - min + 1) + 1);
 	}
 
-	SetType random_walk_direction()
+	SetType random_walk_direction(void)
 	{
 		uint32_t possible_sets = UnknownSet;
 
@@ -184,7 +170,7 @@ implementation
 
 		// If we don't know our sink distance then we cannot work
 		// out which neighbour is in closer or further.
-		if (landmark_distance != BOTTOM && further_or_closer_set != UnknownSet)
+		if (landmark_distance != UNKNOWN_HOP_DISTANCE && further_or_closer_set != UnknownSet)
 		{
 			for (i = 0; i != neighbours.size; ++i)
 			{
@@ -248,17 +234,23 @@ implementation
 		return chosen_address;
 	}
 
-	uint32_t beacon_send_wait()
+	uint32_t beacon_send_wait(void)
 	{
-		return 75U + (uint32_t)(50U * random_float());
+		return 50U + (uint32_t)(random_interval(0, 50));
 	}
 
-	USE_MESSAGE(Normal);
-	USE_MESSAGE(Away);
-	USE_MESSAGE(Beacon);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
+	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
 
 	event void Boot.booted()
 	{
+		busy = FALSE;
+		call Packet.clear(&packet);
+
+		landmark_distance = UNKNOWN_HOP_DISTANCE;
+		received_beacon = FALSE;
+
 		init_distance_neighbours(&neighbours);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
@@ -272,7 +264,6 @@ implementation
 		if (call NodeType.is_node_sink())
 		{
 			call NodeType.init(SinkNode);
-			//sink_distance = 0;
 		}
 		else
 		{
@@ -292,7 +283,9 @@ implementation
 
 			if (call NodeType.is_topology_node_id(LANDMARK_NODE_ID))
 			{
-				call AwaySenderTimer.startOneShot(1 * 1000); // One second
+				landmark_distance = 0;
+
+				call AwaySenderTimer.startOneShot(AWAY_SEND_PERIOD);
 			}
 		}
 		else
@@ -315,7 +308,7 @@ implementation
 		{
 			call NodeType.set(SourceNode);
 
-			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected\n");
+			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected200\n");
 
 			call SourcePeriodModel.startPeriodic();
 		}
@@ -373,31 +366,34 @@ implementation
 		{
 			// Broadcasting under this circumstance would be akin to flooding.
 			// Which provides no protection.
-			simdbg("M-SD", NXSEQUENCE_NUMBER_SPEC "\n", message.sequence_number);
+			//M-SD
+			METRIC_GENERIC(METRIC_GENERIC_SOURCE_DROPPED,
+				NXSEQUENCE_NUMBER_SPEC "\n",
+				message.sequence_number);
 		}
 	}
 
 	event void AwaySenderTimer.fired()
 	{
+		const uint32_t now = call AwaySenderTimer.gett0() + call AwaySenderTimer.getdt();
+
 		AwayMessage message;
 
-		landmark_distance = 0;
-
-		simdbgverbose("SourceBroadcasterC", "AwaySenderTimer fired.\n");
+		if (received_beacon)
+		{
+			return;
+		}
 
 		message.sequence_number = call AwaySeqNos.next(TOS_NODE_ID);
 		message.source_id = TOS_NODE_ID;
 		message.landmark_distance = landmark_distance;
 
-		call Packet.clear(&packet);
-
-		extra_to_send = 2;
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
 		}
 
-		simdbgverbose("stdout", "Away sent\n");
+		call AwaySenderTimer.startOneShotAt(now, AWAY_SEND_PERIOD);
 	}
 
 	event void BeaconSenderTimer.fired()
@@ -407,8 +403,6 @@ implementation
 		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
 		message.landmark_distance_of_sender = landmark_distance;
-
-		call Packet.clear(&packet);
 
 		send_Beacon_message(&message, AM_BROADCAST_ADDR);
 	}
@@ -431,7 +425,9 @@ implementation
 			forwarding_message.source_distance += 1;
 			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS && !rcvd->broadcast && !(call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
+			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS &&
+				!rcvd->broadcast &&
+				!(call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 			{
 				am_addr_t target;
 
@@ -464,8 +460,13 @@ implementation
 				// We do not want to broadcast here as it may lead the attacker towards the source.
 				if (target == AM_BROADCAST_ADDR)
 				{
-					simdbg("M-PD", NXSEQUENCE_NUMBER_SPEC ",%u\n",
+					// M-PD
+					METRIC_GENERIC(METRIC_GENERIC_PATH_DROPPED,
+						NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						rcvd->sequence_number, rcvd->source_distance);
+
+					ERROR_OCCURRED(ERROR_RSSI_READ_FAILURE,
+						"Failed to read RSSI (1 << " STRINGIFY(LOG2SAMPLES) ") times\n");
 
 					return;
 				}
@@ -481,14 +482,14 @@ implementation
 			{
 				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 				{
-					simdbg("M-PE", TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
+					//M-PE
+					METRIC_GENERIC(METRIC_GENERIC_PATH_END,
+						TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
 				}
 
 				// We want other nodes to continue broadcasting
 				forwarding_message.broadcast = TRUE;
-
-				call Packet.clear(&packet);
 
 				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
 			}
@@ -575,11 +576,8 @@ implementation
 			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
-			forwarding_message.landmark_distance += 1;
+			forwarding_message.landmark_distance = hop_distance_increment(rcvd->landmark_distance);
 
-			call Packet.clear(&packet);
-			
-			extra_to_send = 1;
 			send_Away_message(&forwarding_message, AM_BROADCAST_ADDR);
 
 			call BeaconSenderTimer.startOneShot(beacon_send_wait());
@@ -604,6 +602,8 @@ implementation
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance_of_sender);
 
 		METRIC_RCV_BEACON(rcvd);
+
+		received_beacon = TRUE;
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)

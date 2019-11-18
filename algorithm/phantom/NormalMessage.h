@@ -1,6 +1,8 @@
 #ifndef SLP_MESSAGES_NORMALMESSAGE_H
 #define SLP_MESSAGES_NORMALMESSAGE_H
 
+#include "HopDistance.h"
+
 #include "SequenceNumber.h"
 
 typedef nx_struct NormalMessage
@@ -12,9 +14,9 @@ typedef nx_struct NormalMessage
 
   // The number of hops that this message
   // has travelled from the source. 
-  nx_uint16_t source_distance;
+  nx_hop_distance_t source_distance;
 
-  nx_int16_t landmark_distance_of_sender;
+  nx_hop_distance_t landmark_distance_of_sender;
 
   nx_uint8_t further_or_closer_set;
 

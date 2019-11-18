@@ -2,6 +2,7 @@
 #define SLP_MESSAGES_AWAYMESSAGE_H
 
 #include "SequenceNumber.h"
+#include "HopDistance.h"
 
 typedef nx_struct AwayMessage
 {
@@ -11,7 +12,7 @@ typedef nx_struct AwayMessage
 
   // The number of hops that this message
   // has travelled from the landmark node. 
-  nx_uint16_t landmark_distance;
+  nx_hop_distance_t landmark_distance;
 
 } AwayMessage;
 
