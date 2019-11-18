@@ -413,19 +413,24 @@ implementation
 		
 		UPDATE_NEIGHBOURS(rcvd, source_addr, landmark_distance_of_sender);
 
-		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		// Don't check unicast messages, always process them
+		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number) || !rcvd->broadcast)
 		{
 			NormalMessage forwarding_message;
 
-			call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			// Only update seqno if from a flooded message
+			if (rcvd->broadcast)
+			{
+				call NormalSeqNos.update(rcvd->source_id, rcvd->sequence_number);
+			}
 
 			METRIC_RCV_NORMAL(rcvd);
 
 			forwarding_message = *rcvd;
-			forwarding_message.source_distance += 1;
+			forwarding_message.source_distance = hop_distance_increment(rcvd->source_distance);
 			forwarding_message.landmark_distance_of_sender = landmark_distance;
 
-			if (rcvd->source_distance + 1 < RANDOM_WALK_HOPS &&
+			if (forwarding_message.source_distance < RANDOM_WALK_HOPS &&
 				!rcvd->broadcast &&
 				!(call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 			{
@@ -464,28 +469,25 @@ implementation
 					METRIC_GENERIC(METRIC_GENERIC_PATH_DROPPED,
 						NXSEQUENCE_NUMBER_SPEC ",%u\n",
 						rcvd->sequence_number, rcvd->source_distance);
+					//return;
 
-					ERROR_OCCURRED(ERROR_RSSI_READ_FAILURE,
-						"Failed to read RSSI (1 << " STRINGIFY(LOG2SAMPLES) ") times\n");
-
-					return;
+					forwarding_message.broadcast = TRUE; 
 				}
 
 				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
-				call Packet.clear(&packet);
-
 				send_Normal_message(&forwarding_message, target);
 			}
 			else
 			{
-				if (!rcvd->broadcast && (rcvd->source_distance + 1 == RANDOM_WALK_HOPS || call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
+				if (!rcvd->broadcast &&
+					(forwarding_message.source_distance == RANDOM_WALK_HOPS || call NodeType.is_topology_node_id(LANDMARK_NODE_ID)))
 				{
 					//M-PE
 					METRIC_GENERIC(METRIC_GENERIC_PATH_END,
 						TOS_NODE_ID_SPEC "," TOS_NODE_ID_SPEC "," NXSEQUENCE_NUMBER_SPEC ",%u\n",
-						source_addr, rcvd->source_id, rcvd->sequence_number, rcvd->source_distance + 1);
+						source_addr, rcvd->source_id, rcvd->sequence_number, forwarding_message.source_distance);
 				}
 
 				// We want other nodes to continue broadcasting
@@ -567,12 +569,10 @@ implementation
 
 		UPDATE_LANDMARK_DISTANCE(rcvd, landmark_distance);
 
-		if (call AwaySeqNos.before(rcvd->source_id, rcvd->sequence_number))
+		if (call AwaySeqNos.before_and_update(rcvd->source_id, rcvd->sequence_number))
 		{
 			AwayMessage forwarding_message;
 
-			call AwaySeqNos.update(rcvd->source_id, rcvd->sequence_number);
-			
 			METRIC_RCV_AWAY(rcvd);
 
 			forwarding_message = *rcvd;
