@@ -382,6 +382,7 @@ class OfflineSimulation(object):
         if not hasattr(self, "gui"):
             self.register_output_handler("G-NC", None)
             self.register_output_handler("LedsC", None)
+            self.register_output_handler("LedsCooja", None)
 
         return self
 
