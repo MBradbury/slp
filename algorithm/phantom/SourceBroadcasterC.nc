@@ -50,6 +50,7 @@ module SourceBroadcasterC
 	uses interface Leds;
 	uses interface Crc;
 
+	uses interface Timer<TMilli> as ConsiderTimer;
 	uses interface Timer<TMilli> as AwaySenderTimer;
 	uses interface Timer<TMilli> as BeaconSenderTimer;
 
@@ -61,6 +62,7 @@ module SourceBroadcasterC
 	uses interface AMSend as NormalSend;
 	uses interface Receive as NormalReceive;
 	uses interface Receive as NormalSnoop;
+	uses interface PacketAcknowledgements as NormalPacketAcknowledgements;
 
 	uses interface AMSend as AwaySend;
 	uses interface Receive as AwayReceive;
@@ -98,7 +100,11 @@ implementation
 	bool received_beacon;
 
 	bool busy;
+	uint8_t rtx_attempts;
 	message_t packet;
+
+	bool busy_rtx_packet;
+	message_t rtx_packet;
 
 	uint16_t random_interval(uint16_t min, uint16_t max)
 	{
@@ -109,10 +115,10 @@ implementation
 	{
 		uint32_t possible_sets = UnknownSet;
 
-		// We want compare sink distance if we do not know our sink distance
+		// We can't compare landmark distance if we do not know our sink distance
 		if (landmark_distance != BOTTOM)
 		{
-			uint32_t i;
+			uint16_t i;
 
 			// Find nodes whose sink distance is less than or greater than
 			// our sink distance.
@@ -134,7 +140,8 @@ implementation
 		if (possible_sets == (FurtherSet | CloserSet))
 		{
 			// Both directions possible, so randomly pick one of them
-			const uint16_t rnd = call Random.rand16() % 2;
+			// Low bits tend to be biased, so pick one of the higher bits to sample
+			const uint16_t rnd = (call Random.rand16() >> 6) % 2;
 			if (rnd == 0)
 			{
 				return FurtherSet;
@@ -239,14 +246,25 @@ implementation
 		return 50U + (uint32_t)(random_interval(0, 50));
 	}
 
-	USE_MESSAGE_NO_EXTRA_TO_SEND(Normal);
+	USE_MESSAGE_ACK_REQUEST_WITH_CALLBACK(Normal);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Away);
 	USE_MESSAGE_NO_EXTRA_TO_SEND(Beacon);
+
+	void send_beacon(uint8_t req)
+	{
+		BeaconMessage message;
+		message.landmark_distance_of_sender = landmark_distance;
+		message.req = req;
+		send_Beacon_message(&message, AM_BROADCAST_ADDR);
+	}
 
 	event void Boot.booted()
 	{
 		busy = FALSE;
 		call Packet.clear(&packet);
+
+		busy_rtx_packet = FALSE;
+		call Packet.clear(&rtx_packet);
 
 		landmark_distance = UNKNOWN_HOP_DISTANCE;
 		received_beacon = FALSE;
@@ -326,6 +344,81 @@ implementation
 		}
 	}
 
+	void send_Normal_done(message_t* msg, error_t error)
+	{
+		NormalMessage* normal_message;
+
+		//LOG_STDOUT(0, "Normal send done (busy_rtx_packet=%"PRIu8")\n", busy_rtx_packet);
+
+		if (busy_rtx_packet)
+		{
+			return;
+		}
+
+		busy_rtx_packet = TRUE;
+
+		normal_message = (NormalMessage*)call NormalSend.getPayload(msg, sizeof(NormalMessage));
+
+		memcpy(call NormalSend.getPayload(&rtx_packet, sizeof(NormalMessage)), normal_message, sizeof(NormalMessage));
+
+		if (error != SUCCESS)
+		{
+			// Failed to send the message
+			call ConsiderTimer.startOneShot(ALPHA_RETRY);
+		}
+		else
+		{
+			const am_addr_t target = call AMPacket.destination(msg);
+
+			const bool ack_requested = target != AM_BROADCAST_ADDR;
+			const bool was_acked = call NormalPacketAcknowledgements.wasAcked(msg);
+
+			if (ack_requested & !was_acked)
+			{
+				rtx_attempts -= 1;
+
+				// Give up sending this message
+				if (rtx_attempts == 0)
+				{
+					ERROR_OCCURRED(ERROR_RTX_FAILED,
+						"Failed to send message " NXSEQUENCE_NUMBER_SPEC ".\n",
+						normal_message->sequence_number);
+					busy_rtx_packet = FALSE;
+				}
+				else
+				{
+					call ConsiderTimer.startOneShot(ALPHA * (RTX_ATTEMPTS - rtx_attempts));
+				}
+			}
+			else
+			{
+				busy_rtx_packet = FALSE;
+			}
+		}
+	}
+
+	event void ConsiderTimer.fired()
+	{
+		am_addr_t target;
+		bool ack_requested;
+		NormalMessage normal_message;
+
+		normal_message = *(NormalMessage*)call NormalSend.getPayload(&rtx_packet, sizeof(NormalMessage));
+
+		busy_rtx_packet = FALSE;
+
+		// Keep going in the same direction
+		target = random_walk_target(normal_message.further_or_closer_set, NULL, 0);
+		normal_message.broadcast = (target == AM_BROADCAST_ADDR);
+
+		//LOG_STDOUT(0, "Rebroadcasting Normal " NXSEQUENCE_NUMBER_SPEC "\n",
+		//		normal_message.sequence_number);
+
+		ack_requested = !normal_message.broadcast;
+
+		send_Normal_message_ex(&normal_message, target, &ack_requested);
+	}
+
 	event void SourcePeriodModel.fired()
 	{
 		NormalMessage message;
@@ -344,23 +437,30 @@ implementation
 
 		message.further_or_closer_set = random_walk_direction();
 
+		METRIC_GENERIC(METRIC_GENERIC_DIRECTION,
+				NXSEQUENCE_NUMBER_SPEC ",%" PRIu8 "\n",
+				message.sequence_number, message.further_or_closer_set);
+
 		target = random_walk_target(message.further_or_closer_set, NULL, 0);
 
 		// If we don't know who our neighbours are, then we
 		// cannot unicast to one of them.
 		if (target != AM_BROADCAST_ADDR)
 		{
+			bool ack_requested;
+
 			message.broadcast = (target == AM_BROADCAST_ADDR);
+
+			ack_requested = !message.broadcast;
 
 			simdbgverbose("stdout", "%s: Forwarding normal from source to target = %u in direction %u\n",
 				sim_time_string(), target, message.further_or_closer_set);
 
 			call Packet.clear(&packet);
 
-			if (send_Normal_message(&message, target))
-			{
-				call NormalSeqNos.increment(TOS_NODE_ID);
-			}
+			rtx_attempts = RTX_ATTEMPTS;
+			send_Normal_message_ex(&message, target, &ack_requested);
+			call NormalSeqNos.increment(TOS_NODE_ID);
 		}
 		else
 		{
@@ -370,6 +470,8 @@ implementation
 			METRIC_GENERIC(METRIC_GENERIC_SOURCE_DROPPED,
 				NXSEQUENCE_NUMBER_SPEC "\n",
 				message.sequence_number);
+
+			send_beacon(TRUE);
 		}
 	}
 
@@ -398,13 +500,9 @@ implementation
 
 	event void BeaconSenderTimer.fired()
 	{
-		BeaconMessage message;
-
 		simdbgverbose("SourceBroadcasterC", "BeaconSenderTimer fired.\n");
 
-		message.landmark_distance_of_sender = landmark_distance;
-
-		send_Beacon_message(&message, AM_BROADCAST_ADDR);
+		send_beacon(FALSE);
 	}
 
 	void process_normal(message_t* msg, const NormalMessage* const rcvd, am_addr_t source_addr)
@@ -417,6 +515,7 @@ implementation
 		if (call NormalSeqNos.before(rcvd->source_id, rcvd->sequence_number) || !rcvd->broadcast)
 		{
 			NormalMessage forwarding_message;
+			bool ack_requested;
 
 			// Only update seqno if from a flooded message
 			if (rcvd->broadcast)
@@ -477,7 +576,10 @@ implementation
 				simdbgverbose("stdout", "%s: Forwarding normal from %u to target = %u\n",
 					sim_time_string(), TOS_NODE_ID, target);
 
-				send_Normal_message(&forwarding_message, target);
+				ack_requested = target != AM_BROADCAST_ADDR;
+
+				rtx_attempts = RTX_ATTEMPTS;
+				send_Normal_message(&forwarding_message, target, &ack_requested);
 			}
 			else
 			{
@@ -493,7 +595,10 @@ implementation
 				// We want other nodes to continue broadcasting
 				forwarding_message.broadcast = TRUE;
 
-				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR);
+				ack_requested = FALSE;
+
+				rtx_attempts = RTX_ATTEMPTS;
+				send_Normal_message(&forwarding_message, AM_BROADCAST_ADDR, &ack_requested);
 			}
 		}
 	}
@@ -604,6 +709,12 @@ implementation
 		METRIC_RCV_BEACON(rcvd);
 
 		received_beacon = TRUE;
+
+		// Beacon requested
+		if (rcvd->req)
+		{
+			call BeaconSenderTimer.startOneShot(beacon_send_wait());
+		}
 	}
 
 	RECEIVE_MESSAGE_BEGIN(Beacon, Receive)

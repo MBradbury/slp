@@ -7,6 +7,8 @@ typedef nx_struct BeaconMessage
 {
   nx_hop_distance_t landmark_distance_of_sender;
 
+  nx_uint8_t req;
+
 } BeaconMessage;
 
 inline SequenceNumberWithBottom Beacon_get_sequence_number(const BeaconMessage* msg) { return BOTTOM; }

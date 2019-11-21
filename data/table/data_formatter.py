@@ -97,6 +97,7 @@ class TableDataFormatter(object):
                 "average duty cycle": ("Duty Cycle", "(\\%)"),
 
                 "attacker distance": ("Attacker", "Distance"),
+                "landmark node": ("Landmark",  "Node"),
             }[name]
         except KeyError as ex:
             print("Failed to find the name '{}'. Using default. : {}".format(name, ex), file=sys.stderr)

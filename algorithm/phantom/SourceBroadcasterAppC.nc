@@ -43,12 +43,13 @@ implementation
 
 
 	// Timers
-	components new TimerMilliC() as AwaySenderTimer;
+	components new TimerMilliC() as ConsiderTimer;
+	App.ConsiderTimer -> ConsiderTimer;
 
+	components new TimerMilliC() as AwaySenderTimer;
 	App.AwaySenderTimer -> AwaySenderTimer;
 
 	components new TimerMilliC() as BeaconSenderTimer;
-
 	App.BeaconSenderTimer -> BeaconSenderTimer;
 
 
@@ -72,6 +73,7 @@ implementation
 	App.NormalSend -> NormalSender;
 	App.NormalReceive -> NormalReceiver;
 	App.NormalSnoop -> NormalSnooper;
+	App.NormalPacketAcknowledgements -> NormalSender.Acks;
 
 	App.AwaySend -> AwaySender;
 	App.AwayReceive -> AwayReceiver;
