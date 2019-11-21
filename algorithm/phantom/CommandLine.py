@@ -59,14 +59,33 @@ class CLI(CommandLineCommon.CLI):
 
 
     def _run_table(self, args):
-        phantom_results = results.Results(
-            self.algorithm_module.result_file_path,
-            parameters=self.algorithm_module.local_parameter_names,
-            results=('normal latency', 'ssd', 'captured', 'sent', 'received ratio', 'paths reached end', 'source dropped'))
+        from data.table.summary_formatter import TableDataFormatter
+        fmt = TableDataFormatter()
 
-        result_table = fake_result.ResultTable(phantom_results)
+        parameters = [
+            'captured',
+            'received ratio',
+            'paths reached end',
+            'source dropped',
+            #'path dropped',
+            'normal latency',
+            'ssd',
+            'sent',
+            'norm(sent,time taken)',
+            'attacker distance',
+        ]
 
-        self._create_table("{}-results".format(self.algorithm_module.name), result_table)
+        hide_parameters = []
+ 
+        extractors = {
+            # Just get the distance of attacker 0 from node 0 (the source in SourceCorner)
+            "attacker distance": lambda yvalue: yvalue[(0, 0)]
+        }
+
+        self._create_results_table(args.sim, parameters,
+            fmt=fmt, hide_parameters=hide_parameters, extractors=extractors,
+            orientation="landscape",
+            show=args.show)
 
     def _run_graph(self, args):
         graph_parameters = {

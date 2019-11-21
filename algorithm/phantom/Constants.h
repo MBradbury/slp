@@ -21,11 +21,21 @@ enum NodeType
 
 #define AWAY_SEND_PERIOD (1 * 1000)
 
+#define ALPHA 10
+#define ALPHA_RETRY 20
+#define RTX_ATTEMPTS 9
+
 enum AppEventCodes
 {
     METRIC_GENERIC_PATH_END = 3001,
     METRIC_GENERIC_SOURCE_DROPPED = 3002,
     METRIC_GENERIC_PATH_DROPPED = 3003,
+    METRIC_GENERIC_DIRECTION = 3004,
+};
+
+enum ApplicationSLPErrorCodes
+{
+    ERROR_RTX_FAILED = 1001,
 };
 
 #endif // SLP_CONSTANTS_H
