@@ -4,8 +4,8 @@ import simulator.SourcePeriodModel
 import simulator.MobilityModel
 
 class Arguments(ArgumentsCommon):
-    def __init__(self):
-        super().__init__("SLP Phantom", has_safety_period=True)
+    def __init__(self, **kwargs):
+        super().__init__("SLP Phantom", has_safety_period=True, **kwargs)
 
         self.add_argument("--source-period",
             type=simulator.SourcePeriodModel.eval_input, required=True)

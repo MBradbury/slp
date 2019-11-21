@@ -82,6 +82,12 @@ module SourceBroadcasterC
 	uses interface SequenceNumbers as AwaySeqNos;
 	 
 	uses interface Random;
+
+#ifdef LOW_POWER_LISTENING
+	uses interface LowPowerListening;
+
+	uses interface Timer<TMilli> as StartDutyCycleTimer;
+#endif
 }
 
 implementation 
@@ -98,6 +104,7 @@ implementation
 	distance_neighbours_t neighbours;
 
 	bool received_beacon;
+	uint8_t away_floods;
 
 	bool busy;
 	uint8_t rtx_attempts;
@@ -269,6 +276,8 @@ implementation
 		landmark_distance = UNKNOWN_HOP_DISTANCE;
 		received_beacon = FALSE;
 
+		away_floods = 0;
+
 		init_distance_neighbours(&neighbours);
 
 		call MessageType.register_pair(NORMAL_CHANNEL, "Normal");
@@ -278,6 +287,11 @@ implementation
 		call NodeType.register_pair(SourceNode, "SourceNode");
 		call NodeType.register_pair(SinkNode, "SinkNode");
 		call NodeType.register_pair(NormalNode, "NormalNode");
+
+#ifdef LOW_POWER_LISTENING
+		// All nodes should listen continuously during setup phase
+		call LowPowerListening.setLocalWakeupInterval(0);
+#endif
 
 		if (call NodeType.is_node_sink())
 		{
@@ -297,7 +311,7 @@ implementation
 		{
 			LOG_STDOUT_VERBOSE(EVENT_RADIO_ON, "radio on\n");
 
-			call ObjectDetector.start();
+			call ObjectDetector.start_later(SLP_OBJECT_DETECTOR_START_DELAY_MS);
 
 			if (call NodeType.is_topology_node_id(LANDMARK_NODE_ID))
 			{
@@ -305,6 +319,13 @@ implementation
 
 				call AwaySenderTimer.startOneShot(AWAY_SEND_PERIOD);
 			}
+
+#ifdef LOW_POWER_LISTENING
+			if (call NodeType.get() != SinkNode)
+			{
+				call StartDutyCycleTimer.startOneShot(SLP_OBJECT_DETECTOR_START_DELAY_MS);
+			}
+#endif
 		}
 		else
 		{
@@ -326,9 +347,11 @@ implementation
 		{
 			call NodeType.set(SourceNode);
 
-			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected200\n");
+			LOG_STDOUT(EVENT_OBJECT_DETECTED, "An object has been detected\n");
 
 			call SourcePeriodModel.startPeriodic();
+
+			METRIC_GENERIC(METRIC_GENERIC_DUTY_CYCLE_START, "");
 		}
 	}
 
@@ -343,6 +366,16 @@ implementation
 			call NodeType.set(NormalNode);
 		}
 	}
+
+#ifdef LOW_POWER_LISTENING
+	event void StartDutyCycleTimer.fired()
+	{
+		// The sink does not do duty cycling and keeps its radio on at all times
+		assert(call NodeType.get() != SinkNode);
+		
+		call LowPowerListening.setLocalWakeupInterval(LPL_DEF_LOCAL_WAKEUP);
+	}
+#endif
 
 	void send_Normal_done(message_t* msg, error_t error)
 	{
@@ -481,7 +514,7 @@ implementation
 
 		AwayMessage message;
 
-		if (received_beacon)
+		if (received_beacon || away_floods >= MAX_AWAY_FLOODS)
 		{
 			return;
 		}
@@ -493,6 +526,8 @@ implementation
 		if (send_Away_message(&message, AM_BROADCAST_ADDR))
 		{
 			call AwaySeqNos.increment(TOS_NODE_ID);
+
+			away_floods += 1;
 		}
 
 		call AwaySenderTimer.startOneShotAt(now, AWAY_SEND_PERIOD);
