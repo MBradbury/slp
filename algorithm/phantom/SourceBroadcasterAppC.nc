@@ -41,6 +41,14 @@ implementation
 
 	App.RadioControl -> ActiveMessageC;
 
+#ifdef LOW_POWER_LISTENING
+	App.LowPowerListening -> ActiveMessageC;
+
+	components new TimerMilliC() as StartDutyCycleTimer;
+
+    App.StartDutyCycleTimer -> StartDutyCycleTimer;
+#endif
+
 
 	// Timers
 	components new TimerMilliC() as ConsiderTimer;

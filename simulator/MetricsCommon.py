@@ -331,12 +331,14 @@ class MetricsCommon(object):
 
                 key = (top_node_id, sequence_number)
 
-                if __debug__:
-                    if key in self.normal_sent_time:
-                        self._warning_or_error("Already have a sent time for {}, it was {}, updating to {}.".format(
-                            key, self.normal_sent_time[key], time))
+                # Not sure why this is present. Might have been to catch failed seqno increments.
+                #if __debug__:
+                #    if key in self.normal_sent_time:
+                #        self._warning_or_error("Already have a sent time for {}, it was {}, updating to {}.".format(
+                #            key, self.normal_sent_time[key], time))
 
-                self.normal_sent_time[key] = time
+                if key not in self.normal_sent_time:
+                    self.normal_sent_time[key] = time
 
                 # Handle starting the duration timeout in the simulation running
                 self.sim.trigger_duration_run_start(time)
