@@ -33,12 +33,15 @@ class Analyzer(AnalyzerCommon):
 
         def dp(x, n1, n2):
 
-            d1 = x.average_of.get(n1, None)
-            d2 = x.average_of.get(n2, None)
+            d1 = x.describe_of.get(n1, None)
+            d2 = x.describe_of.get(n2, None)
 
             # Allow missing results
             if d1 is None or d2 is None:
                 return "None"
+
+            d1 = d1['mean']
+            d2 = d2['mean']
 
             result = {}
 

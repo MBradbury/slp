@@ -32,8 +32,8 @@ class Analyzer(AnalyzerCommon):
         d['norm(sent,time taken)'] = lambda x: self._format_results(x, 'norm(Sent,TimeTaken)')
         d['norm(norm(sent,time taken),network size)'] = lambda x: self._format_results(x, 'norm(norm(Sent,TimeTaken),num_nodes)')
 
-        d['control sent']       = lambda x: str(x.average_of['SearchSent'] + x.average_of['ChangeSent'])
-        d['path sent']          = lambda x: str(x.average_of['SearchSent'] + x.average_of['ChangeSent'])
-        d['overhead']           = lambda x: str((x.average_of['SearchSent'] + x.average_of['ChangeSent'])tx.average_of['NormalSent'])
+        d['control sent']       = lambda x: str(x.describe_of['SearchSent']['mean'] + x.describe_of['ChangeSent']['mean'])
+        d['path sent']          = lambda x: str(x.describe_of['SearchSent']['mean'] + x.describe_of['ChangeSent']['mean'])
+        d['overhead']           = lambda x: str((x.describe_of['SearchSent']['mean'] + x.describe_of['ChangeSent']['mean'])/x.describe_of['NormalSent']['mean'])
 
         return d

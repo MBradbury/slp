@@ -874,10 +874,6 @@ class Analyse(object):
 
 class AnalysisResults(object):
     def __init__(self, analysis):
-        #self.average_of = {}
-        #self.variance_of = {}
-        #self.median_of = {}
-
         self.describe_of = {}
 
         skip = ["Seed"]
@@ -896,26 +892,6 @@ class AnalysisResults(object):
                 if heading not in expected_fail:
                     print("Failed to describe {}: {}".format(heading, ex), file=sys.stderr)
                     #print(traceback.format_exc(), file=sys.stderr)
-
-            """try:
-                self.average_of[heading] = analysis.average_of(heading)
-            except NotImplementedError:
-                pass
-            except (TypeError, RuntimeError) as ex:
-                if heading not in expected_fail:
-                    print("Failed to average {}: {}".format(heading, ex), file=sys.stderr)
-                    #print(traceback.format_exc(), file=sys.stderr)
-
-            try:
-                self.variance_of[heading] = analysis.variance_of(heading, self.average_of[heading])
-            except NotImplementedError:
-                pass
-            except (TypeError, KeyError, RuntimeError) as ex:
-                if heading not in expected_fail:
-                    print("Failed to find variance {}: {}".format(heading, ex), file=sys.stderr)
-                    #print(traceback.format_exc(), file=sys.stderr)"""
-
-        #self.median_of['TimeTaken'] = analysis.median_of('TimeTaken')
 
         self.opts = analysis.opts
         self.headers_to_skip = analysis.headers_to_skip
@@ -1036,29 +1012,6 @@ class AnalyzerCommon(object):
             else:
                 #print(f"Failed to find {name} in {x.describe_of.keys()}")
                 raise
-
-        """if name in x.variance_of:
-            ave = x.average_of[name]
-            var = x.variance_of[name]
-
-            #if isinstance(ave, dict):
-            #    std = {k: math.sqrt(v) for (k, v) in var.items()}
-            #    stderr = {k: v / math.sqrt(x.number_of_repeats) for (k, v) in std.items()}
-            #else:
-            #    std = math.sqrt(var)
-            #    stderr = std / math.sqrt(x.number_of_repeats)
-
-            return f"{ave};{var}"
-        else:
-            try:
-                ave = x.average_of[name]
-
-                return str(ave)
-            except KeyError:
-                if allow_missing or name in x.headers_to_skip:
-                    return "None"
-                else:
-                    raise"""
 
     def analyse_path(self, path, **kwargs):
         return Analyse(path, self.normalised_values, self.filtered_values, **kwargs)

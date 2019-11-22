@@ -1,7 +1,7 @@
 
 import math
 
-class Function(object):
+class Function:
     dr = 0
 
     @staticmethod
@@ -90,25 +90,21 @@ class Function(object):
     def utility(cls, x, parameters):
         for (name,param, function_type) in parameters:
             if name == "ReceiveRatio":
-                cls.dr =  x.average_of[name]
-
-        #print "$$dr = {}$$".format(cls.dr)
-        #for (name,param,function_type) in parameters:
-        #    print "***utility of {}({}) is :{}(raw data: {})***".format(name, function_type, cls.utility_of(name, function_type)(param.k, x.average_of[name], param.x0, cls.dr), x.average_of[name])
+                cls.dr =  x.describe_of[name]['mean']
 
         return sum(
-            param.weight * cls.utility_of(name, function_type)(param.k, x.average_of[name], param.x0, cls.dr)
+            param.weight * cls.utility_of(name, function_type)(param.k, x.describe_of[name]['mean'], param.x0, cls.dr)
             for (name, param, function_type)
             in parameters
         )
 
-class LinearParameters(object):
+class LinearParameters:
     def __init__(self, k, x0, weight):
         self.k = k
         self.x0 = x0
         self.weight = weight
 
-class SigmoidParameters(object):
+class SigmoidParameters:
     def __init__(self, k, x0, weight):
         self.k = k
         self.x0 = x0
@@ -116,19 +112,19 @@ class SigmoidParameters(object):
 
 # Sigmoid parameters used for SRDS 2017 journal extension (FGCS)
 
-class AnimalProtection(object):
+class AnimalProtection:
     cr = SigmoidParameters(k=50.0, x0=0.1, weight=0.4)         # ranges from [0, 1], non-linear
     dr = LinearParameters(k=1.0, x0=0.0, weight=0.2)       # ranges from [0, 1], linear
     lat = LinearParameters(k=-0.5, x0=1.0, weight=0.2)          # scale is in seconds, linear
     msg = LinearParameters(k=-0.0005, x0=1.0, weight=0.2)  # message send numbers, linear
 
-class AssetMonitoring(object):
+class AssetMonitoring:
     cr = LinearParameters(k=-1.0, x0=1.0, weight=0.2)       #linear
     dr = SigmoidParameters(k=20.0, x0=-0.8, weight=0.4)      #non-linear
     lat = LinearParameters(k=-0.5, x0=1.0, weight=0.1)      #linear
     msg = SigmoidParameters(k=0.01, x0=400.0, weight=0.3)    #non-linear
 
-class Military(object):
+class Military:
     cr = SigmoidParameters(k=50.0, x0=0.1, weight=0.4)      #non-linear
     dr = SigmoidParameters(k=20.0, x0=-0.8, weight=0.25)    #non-linear
     lat = SigmoidParameters(k=10.0, x0=0.5, weight=0.25)    #non-linear
