@@ -317,7 +317,7 @@ implementation
 			{
 				landmark_distance = 0;
 
-				call AwaySenderTimer.startOneShot(AWAY_SEND_PERIOD);
+				call AwaySenderTimer.startOneShot(AWAY_INITIAL_SEND_DELAY);
 			}
 
 #ifdef LOW_POWER_LISTENING

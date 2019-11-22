@@ -22,6 +22,7 @@ enum NodeType
 #define SLP_OBJECT_DETECTOR_START_DELAY_MS (2 * 1000)
 
 #define MAX_AWAY_FLOODS 3
+#define AWAY_INITIAL_SEND_DELAY (1000) // latests node start time default
 #define AWAY_SEND_PERIOD (500)
 
 #define ALPHA 10
