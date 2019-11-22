@@ -253,6 +253,8 @@ class Analyse(object):
         "FakeNodesAtEnd": np.uint32,
         "AveragePowerConsumption": np.float_,
         "AveragePowerUsed": np.float_,
+        "PathsReachedEnd": np.float_,
+        "PathDropped": np.float_,
     }
 
     HEADING_CONVERTERS = {
@@ -1032,6 +1034,7 @@ class AnalyzerCommon(object):
             if allow_missing or name in x.headers_to_skip:
                 return "None"
             else:
+                #print(f"Failed to find {name} in {x.describe_of.keys()}")
                 raise
 
         """if name in x.variance_of:

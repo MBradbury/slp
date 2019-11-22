@@ -59,13 +59,15 @@ class Metrics(MetricsCommon):
         self._path_direction[direction] += 1
 
     def paths_reached_end(self):
-        return len(self._paths_reached_end) / self.num_normal_sent_if_finished()
+        normal_sent = self.num_normal_sent_if_finished()
+        return float('NaN') if normal_sent == 0 else len(self._paths_reached_end) / normal_sent
 
     def source_dropped(self):
         return len(self._source_dropped) / (len(self._source_dropped) + self.num_normal_sent_if_finished())
 
     def path_dropped(self):
-        return len(self._path_dropped) / self.num_normal_sent_if_finished()
+        normal_sent = self.num_normal_sent_if_finished()
+        return float('NaN') if normal_sent == 0 else len(self._path_dropped) / normal_sent
 
     def path_dropped_average_length(self):
         return 0 if len(self._path_dropped) == 0 else np.mean(self._path_dropped)
