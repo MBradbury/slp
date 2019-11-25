@@ -41,7 +41,14 @@ class CLI(CommandLineCommon.CLI):
         parameter_values.append(set(itertools.chain(*parameters.walk_hop_lengths.values())))
         parameter_values.append(parameters.landmark_nodes)
 
-        argument_product = list(itertools.product(*parameter_values))
+        my_paramater_names = self.algorithm_module.extra_parameter_names
+        my_paramater_values = [self._get_local_parameter_values(parameters, parameter) for parameter in my_paramater_names]
+
+        argument_product = [
+            x + y
+            for x in itertools.product(*parameter_values)
+            for y in zip(*my_paramater_values)
+        ]
 
         # Remove incorrect combinations of walk hop lengths
         argument_product = [

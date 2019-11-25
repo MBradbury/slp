@@ -3,14 +3,14 @@ import enum
 
 import numpy as np
 
-from simulator.MetricsCommon import MetricsCommon
+from simulator.MetricsCommon import MetricsCommon, DutyCycleMetricsCommon
 
 class MessageDirection(enum.IntFlag):
     UNKNOWN = 0
     CLOSER = (1 << 0)
     FURTHER = (1 << 1)
 
-class Metrics(MetricsCommon):
+class Metrics(DutyCycleMetricsCommon):
     METRIC_GENERIC_PATH_END = 3001
     METRIC_GENERIC_SOURCE_DROPPED = 3002
     METRIC_GENERIC_PATH_DROPPED = 3003
@@ -85,5 +85,7 @@ class Metrics(MetricsCommon):
         d["PathDropped"]            = lambda x: x.path_dropped()
         d["PathDroppedLength"]      = lambda x: x.path_dropped_average_length()
         d["PathDirectionBias"]      = lambda x: x.path_direction_bias()
+
+        d.update(DutyCycleMetricsCommon.items())
 
         return d
