@@ -9,4 +9,5 @@ def _setup():
 import algorithm.phantom
 
 base_parameter_names = algorithm.phantom.local_parameter_names
-local_parameter_names = base_parameter_names + ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
+extra_parameter_names = ('lpl local wakeup', 'lpl remote wakeup', 'lpl delay after receive', 'lpl max cca checks')
+local_parameter_names = base_parameter_names + extra_parameter_names
