@@ -113,12 +113,54 @@ class DirectedGraphRadioModel(CoojaRadioModel):
 
 class MRMRadioModel(CoojaRadioModel):
     """Multi-path Ray-tracer medium"""
-    def __init__(self):
+
+    parameter_defaults = (
+        ("apply_random", "false"),
+        ("snr_threshold", "6"),
+        ("bg_noise_mean", "-100"),
+        ("bg_noise_var", "1"),
+        ("system_gain_mean", "0"),
+        ("system_gain_var", "4"),
+        ("frequency", "2400"),
+        ("tx_power", "1.5"),
+        ("tx_with_gain", "true"),
+        ("rx_sensitivity", "-100"),
+        ("rx_with_gain", "false"),
+        ("rt_disallow_direct_path", "false"),
+        ("rt_ignore_non_direct", "false"),
+        ("rt_fspl_on_total_length", "true"),
+        ("rt_max_rays", "1"),
+        ("rt_max_refractions", "1"),
+        ("rt_max_reflections", "1"),
+        ("rt_max_diffractions", "0"),
+        ("rt_use_scattering", "false"),
+        ("rt_refrac_coefficient", "-3"),
+        ("rt_reflec_coefficient", "-5"),
+        ("rt_diffr_coefficient", "-10"),
+        ("rt_scatt_coefficient", "-20"),
+        ("obstacle_attenuation", "-3"),
+        ("captureEffect", "true"),
+        ("captureEffectPreambleDuration", str(1000*1000*4*0.5*8/250000)),
+        ("captureEffectSignalTreshold", "3"),
+    )
+
+    def __init__(self, **kwargs):
         super().__init__()
-        raise NotImplementedError("There are loads of parameters to this...")
+
+        self.kwargs = kwargs
+
+        # Check validity of parameter names
+        names = {x[0] for x in self.parameter_defaults}
+
+        for key in self.kwargs:
+            if key not in names:
+                raise RuntimeError(f"{key} is not in the allowed set of MRM parameter names")
+
 
     def cooja_csc(self):
-        return "org.contikios.mrm.MRM"
+        return "org.contikios.mrm.MRM\n" + \
+            "\n".join(f"<{name} value=\"{self.kwargs.get(name, default)}\" />" for (name, default) in self.parameter_defaults) + \
+            "<obstacles />"
 
 
 def models():
