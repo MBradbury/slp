@@ -18,6 +18,7 @@ def parsers():
     return [
         ("SINGLE", None, raw_single_common + ["attacker model"]),
         ("RAW", None, raw_single_common),
+        ("PROFILE", "SINGLE", ["cooja profile"]),
         ("GUI", "SINGLE", ["gui scale"]),
         ("PARALLEL", "SINGLE", ["job size"]),
         ("CLUSTER", "PARALLEL", ["job id"]),
@@ -74,13 +75,29 @@ def cooja_command(module, a, configuration):
 
     csc_file = os.path.join(target_directory, f"sim.{a.args.seed}.csc")
 
-    command = f"java -jar '{cooja_path}' -nogui='{csc_file}' -contiki='{os.environ['CONTIKI_DIR']}'"
+    profile = ""
+    cooja_profile = getattr(a.args, "cooja_profile", None)
+    if cooja_profile:
+        if cooja_profile == "hprof":
+            profile = "-agentlib:hprof=file=hprof.txt,cpu=samples,thread=y,depth=10"
+        elif cooja_profile == "async-profiler":
+            async_profiler_path = os.path.join(os.environ["ASYNC_PROFILER_PATH"], "libasyncProfiler.so")
+            profile = f"-agentpath:{async_profiler_path}=start,o=summary,flat=200,file=out.txt,t"
+        else:
+            raise RuntimeError(f"Unknown COOJA profiler {cooja_profile}")
+
+    # Enable assertions if in debug mode
+    debug = "-ea" if a.args.debug else ""
+
+    command = f"java {debug} {profile} -jar '{cooja_path}' -nogui='{csc_file}' -contiki='{os.environ['CONTIKI_DIR']}'"
 
     return command
 
 
 def cooja_iter(iterable):
     from datetime import datetime
+
+    exception = None
 
     for line in iterable:
         line = line.rstrip()
@@ -89,8 +106,13 @@ def cooja_iter(iterable):
         if not line:
             continue
 
-        if line.startswith('Exception'):
-            raise RuntimeError(f"Cooja exception: '{line}'")
+        if exception is not None:
+            exception += "\n" + line
+            continue
+
+        if line.startswith('Exception') :
+            exception = line
+            continue
 
         try:
             time_us, rest = line.split("|", 1)
@@ -110,6 +132,9 @@ def cooja_iter(iterable):
             rest = rest[len("DEBUG: "):]
 
         yield stime_str + "|" + rest
+
+    if exception is not None:
+        raise RuntimeError(f"Cooja exception: '{exception}'")
 
 def print_arguments(module, a):
     for (k, v) in sorted(vars(a.args).items()):
@@ -160,6 +185,7 @@ def run_simulation(module, a, count=1, print_warnings=False):
                     raise subprocess.CalledProcessError(return_code, command)
 
             except subprocess.TimeoutExpired:
+                print("Timeout expired, killing Cooja proc")
                 proc.terminate()
 
     else:
