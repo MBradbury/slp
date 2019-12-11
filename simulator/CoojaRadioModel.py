@@ -163,6 +163,39 @@ class MRMRadioModel(CoojaRadioModel):
             "<obstacles />"
 
 
+class LogisticLossRadioModel(CoojaRadioModel):
+    """Logistic Loss Radio Model"""
+
+    parameter_defaults = (
+        ("transmitting_range", "20"),
+        ("success_ratio_tx", "1"),
+        ("rx_sensitivity", "-100"),
+        ("rssi_inflection_point", "-92"),
+        ("path_loss_exponent", "3"),
+        ("awgn_sigma", "3"),
+        ("enable_time_variation", "false"),
+        ("time_variation_min_pl_db", "-10"),
+        ("time_variation_max_pl_db", "+10"),
+    )
+
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        self.kwargs = kwargs
+
+        # Check validity of parameter names
+        names = {x[0] for x in self.parameter_defaults}
+
+        for key in self.kwargs:
+            if key not in names:
+                raise RuntimeError(f"{key} is not in the allowed set of MRM parameter names")
+
+    def cooja_csc(self):
+        return "org.contikios.cooja.radiomediums.LogisticLoss\n" + \
+            "\n".join(f"<{name}>{self.kwargs.get(name, default)}</{name}>" for (name, default) in self.parameter_defaults)
+
+
+
 def models():
     """A list of the names of the available radio models."""
     return [subcls for subcls in CoojaRadioModel.__subclasses__()]  # pylint: disable=no-member
