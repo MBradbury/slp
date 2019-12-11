@@ -188,6 +188,12 @@ OPTS = {
     # Only for Cooja
     "cooja":               _add_cooja_radio_model,
 
+    "cooja profile":       lambda x, **kwargs: x.add_argument("--cooja-profile",
+                                                              type=str,
+                                                              choices=("hprof", "async-profiler"),
+                                                              required=True,
+                                                              help="Profile cooja execution"),
+
     "show raw log":        lambda x, **kwargs: x.add_argument("--show-raw-log",
                                                               action="store_true",
                                                               default=False,
@@ -221,7 +227,7 @@ OPTS = {
                                                               default=None),
 
     "gui scale":           lambda x, **kwargs: x.add_argument("--gui-scale",
-                                                              type=ArgumentsCommon.type_positive_int,
+                                                              type=ArgumentsCommon.type_positive_float,
                                                               required=False,
                                                               default=6),
 
