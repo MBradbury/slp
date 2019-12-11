@@ -138,6 +138,21 @@ def _parse_dict_node_to_value(indict, decompress=False):
 
     return result
 
+DICT_STR_KEY_RE = re.compile(r'\'([\w\s]+)\':\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
+
+def _parse_dict_string_to_value(indict, decompress=False):
+    # Parse a dict like "{"a": 10, 'b': 20, "c": 40}"
+
+    if decompress:
+        indict = zlib.decompress(base64.b64decode(indict)).decode("utf-8")
+
+    result = {
+        a: float(b)
+        for (a, b) in DICT_STR_KEY_RE.findall(indict)
+    }
+
+    return result
+
 DICT_TUPLE_KEY_RE = re.compile(r'\((\d+),\s*(\d+)\):\s*(\d+\.\d+|\d+)\s*(?:,|}$)')
 
 def _parse_dict_tuple_nodes_to_value(indict):
@@ -161,6 +176,12 @@ def _parse_dict_string_tuple_to_value(indict):
     }
 
     return dict1
+
+def _parse_float_nan_if_none(x):
+    return np.float_('NaN') if x == "None" else np.float_(x)
+
+def _parse_float_None_if_none(x):
+    return None if x == "None" else np.float_(x)
 
 """
 def _energy_impact(columns, cached_cols, constants):
@@ -291,13 +312,16 @@ class Analyse(object):
         "ParentChangeHeatMap": partial(_parse_dict_node_to_value, decompress=True),
 
         # Can be None if MetricsCommon.num_normal_sent_if_finished is nan
-        "FailedAvoidSink": lambda x: np.float_('NaN') if x == "None" else np.float_(x),
+        "FailedAvoidSink": _parse_float_nan_if_none,
+        "SourceDropped": _parse_float_nan_if_none,
 
-        "DutyCycleStart": lambda x: None if x == "None" else np.float_(x), # Either None or float
+        "DutyCycleStart": _parse_float_None_if_none, # Either None or float
         "DutyCycle": _parse_dict_node_to_value,
 
         "AverageNodePowerConsumption": _parse_dict_node_to_value,
         "TotalNodePowerUsed": _parse_dict_node_to_value,
+
+        "PathDirectionBias": _parse_dict_string_to_value,
     }
 
     def __init__(self, infile_path, normalised_values, filtered_values, with_converters=True,
@@ -867,7 +891,7 @@ class Analyse(object):
             descs = ddf.apply(self.series_describe).to_dict()
             return descs
         elif isinstance(first, str):
-            raise TypeError(f"Cannot describe a string for {header}")
+            raise TypeError(f"Cannot describe a string for {header}. e.g. '{first}'")
         else:
             return self.series_describe(values)
 
@@ -1010,7 +1034,7 @@ class AnalyzerCommon(object):
             if allow_missing or name in x.headers_to_skip:
                 return "None"
             else:
-                #print(f"Failed to find {name} in {x.describe_of.keys()}")
+                print(f"Failed to find {name} in {x.describe_of.keys()}")
                 raise
 
     def analyse_path(self, path, **kwargs):
