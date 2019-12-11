@@ -56,6 +56,7 @@ def create_csc(csc, target_directory, a):
     pcsc('  <project EXPORT="discard">[APPS_DIR]/powertracker</project>')
     pcsc('  <simulation>')
     pcsc('    <title>My simulation</title>')
+    pcsc('    <speedlimit>null</speedlimit>')
     pcsc('    <randomseed>{}</randomseed>'.format(a.args.seed))
     pcsc('    <motedelay_us>{}</motedelay_us>'.format(int(a.args.latest_node_start_time * 1000000)))
     pcsc('    <radiomedium>')
