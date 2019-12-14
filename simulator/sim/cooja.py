@@ -56,12 +56,15 @@ def build(module, a):
     return 0
 
 def print_version():
+    import os
     import simulator.VersionDetection as VersionDetection
 
     print("@version:tinyos={}".format(VersionDetection.tinyos_version()))
     print("@version:contiki={}".format(VersionDetection.contiki_version()))
 
     print("@version:java={}".format(VersionDetection.java_version()))
+
+    print("@path:CONTIKI_DIR={}".format(os.environ["CONTIKI_DIR"]))
 
 def cooja_command(module, a, configuration):
     import os
@@ -80,9 +83,23 @@ def cooja_command(module, a, configuration):
     if cooja_profile:
         if cooja_profile == "hprof":
             profile = "-agentlib:hprof=file=hprof.txt,cpu=samples,thread=y,depth=10"
+
         elif cooja_profile == "async-profiler":
-            async_profiler_path = os.path.join(os.environ["ASYNC_PROFILER_PATH"], "libasyncProfiler.so")
-            profile = f"-agentpath:{async_profiler_path}=start,o=summary,flat=200,file=out.txt,t"
+            try:
+                async_profiler_path = os.path.join(os.environ["ASYNC_PROFILER_PATH"], "libasyncProfiler.so")
+            except KeyError:
+                raise RuntimeError(f"Failed to find the environment variable ASYNC_PROFILER_PATH. Please install from https://github.com/jvm-profiling-tools/async-profiler and set up the path.")
+            profile = f"-agentpath:{async_profiler_path}=start,o=summary,flat=200,file=out.txt,t,i=5ms"
+
+        elif cooja_profile == "yourkit":
+            try:
+                async_profiler_path = os.path.join(os.environ["YOURKIT_PROFILER_PATH"], "libyjpagent.so")
+            except KeyError:
+                raise RuntimeError(f"Failed to find the environment variable YOURKIT_PROFILER_PATH. Please install from https://www.yourkit.com and set up the path.")
+
+            # Parameters documented at: https://www.yourkit.com/docs/java/help/startup_options.jsp
+            profile = f"-agentpath:{async_profiler_path}=sampling,onexit=snapshot"
+            
         else:
             raise RuntimeError(f"Unknown COOJA profiler {cooja_profile}")
 
@@ -113,6 +130,10 @@ def cooja_iter(iterable):
         if line.startswith('Exception') :
             exception = line
             continue
+
+        #if "YourKit" in line:
+        #    print(line)
+        #    continue
 
         try:
             time_us, rest = line.split("|", 1)

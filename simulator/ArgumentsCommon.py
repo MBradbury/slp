@@ -190,7 +190,7 @@ OPTS = {
 
     "cooja profile":       lambda x, **kwargs: x.add_argument("--cooja-profile",
                                                               type=str,
-                                                              choices=("hprof", "async-profiler"),
+                                                              choices=("hprof", "async-profiler", "yourkit"),
                                                               required=True,
                                                               help="Profile cooja execution"),
 
