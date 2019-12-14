@@ -47,7 +47,7 @@ class TableDataFormatter(object):
                 "pr tfs": ("Pr(TFS)", "(\\%)"),
                 "pr pfs": ("Pr(PFS)", "(\\%)"),
                 
-                "walk length": ("Walk Length", "(hops)"),
+                "walk length": ("WL", "(hops)"),
                 "walk retries": ("Walk", "Retries"),
                 "paths reached end": ("Paths Ended", "(\\%)"),
 
