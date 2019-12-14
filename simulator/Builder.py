@@ -15,7 +15,7 @@ ALLOWED_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14", "z1")
 # z1 doesn't seem to support fastserial
 FASTSERIAL_PLATFORMS = ("micaz", "telosb", "wsn430v13", "wsn430v14")
 
-def make_clean(directory):
+def make_clean(directory, platform=None):
     to_remove = ("topology.txt", "app.c", "ident_flags.txt", "main.elf", "main.exe",
                  "main.ihex", "main.srec", "tos_image.xml", "wiring-check.xml", "TOSSIM.pyo")
     for file_to_remove in to_remove:
@@ -24,7 +24,17 @@ def make_clean(directory):
         except OSError:
             pass
 
-    return subprocess.check_call("make clean",
+    make_options = {
+        "WSN_PLATFORM": platform
+    }
+
+    make_options_string = " ".join(f'{k}={v!r}' for (k, v) in make_options.items())
+
+    command = f'make clean {make_options_string}'
+
+    print(command, file=sys.stderr)
+
+    return subprocess.check_call(command,
         cwd=directory,
         shell=True,
         stdout=sys.stderr,
@@ -72,9 +82,9 @@ def build_actual(directory, platform, enable_fast_serial=False, **kwargs):
 
     del kwargs["MAX_TOSSIM_NODES"]
 
-    print(f"Building in {directory}")
+    print(f"Building actual in {directory}")
 
-    make_clean(directory)
+    make_clean(directory, platform=platform)
 
     flags = " ".join(f"-D{k}={v!r}" for (k, v) in kwargs.items())
 

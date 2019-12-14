@@ -1,5 +1,12 @@
 
-CONTIKI = $(CONTIKI_DIR)
+CONTIKI := $(CONTIKI_DIR)
+
+TARGET := $(WSN_PLATFORM)
+
+# Need to use sky instead of telosb
+ifeq ($(TARGET),telosb)
+    TARGET=sky
+endif
 
 # Additional Includes
 #CFLAGS += -I"../common" -I"../common/metrics" -I"../common/fault_model"
@@ -21,3 +28,20 @@ endif
 #SENSORBOARD = flocklab
 #PFLAGS += -board=$(SENSORBOARD) -I$(TOSDIR)/sensorboards/$(SENSORBOARD)
 #endif
+
+.PHONY: fastserial telosb
+
+# Included for compatibility with tinyos makefile
+fastserial:
+	
+
+# TODO: Find a better way than defining teach platform target individually
+
+telosb: all
+	cp $(CONTIKI_PROJECT).$(TARGET) main.exe
+
+z1: all
+	cp $(CONTIKI_PROJECT).$(TARGET) main.exe
+
+micaz: all
+	cp $(CONTIKI_PROJECT).$(TARGET) main.exe
