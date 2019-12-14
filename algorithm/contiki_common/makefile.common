@@ -1,0 +1,23 @@
+
+CONTIKI = $(CONTIKI_DIR)
+
+# Additional Includes
+#CFLAGS += -I"../common" -I"../common/metrics" -I"../common/fault_model"
+
+# Additional warnings
+CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wshadow -Wformat=2 -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
+CFLAGS += -Wsign-compare -fdiagnostics-show-option
+#CFLAGS += -Wno-unused-local-typedefs
+
+#CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
+
+ifndef CYCLEACCURATE
+# The micaz compiler doesn't understand these flags
+# so only enable them when not building for avr
+CFLAGS += -Werror=pointer-sign -Werror=format -Wlogical-op -Wdouble-promotion
+endif
+
+#ifeq ($(TESTBED), flocklab)
+#SENSORBOARD = flocklab
+#PFLAGS += -board=$(SENSORBOARD) -I$(TOSDIR)/sensorboards/$(SENSORBOARD)
+#endif
