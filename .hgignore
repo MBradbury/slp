@@ -38,4 +38,12 @@ Parameters.py
 app.c
 */*/*.java
 COOJA.testlog
-
+algorithm/*/obj_*/
+algorithm/*/contiki-*.map
+algorithm/*/contiki-*.a
+algorithm/*/symbols.h
+algorithm/*/symbols.c
+algorithm/*/*.sky
+algorithm/*/*.z1
+*.lint
+*.cmd
