@@ -57,6 +57,17 @@ class Runner(object):
             from multiprocessing.pool import ThreadPool
             self.pool = ThreadPool()
 
+    def _detect_os_of_build(self, module_path):
+
+        if os.path.exists(os.path.join(module_path, "build")):
+            if os.path.exists(os.path.join(module_path, "build", self.platform, "app.c")):
+                return "tinyos"
+
+        if os.path.exists(os.path.join(module_path, "symbols.c")):
+            return "contiki"
+
+        raise RuntimeError("Failed to detect OS")
+
     def add_job(self, options, name, estimated_time=None):
 
         if not self.quiet:
@@ -119,16 +130,27 @@ class Runner(object):
         if not self.quiet:
             print(f"Copying files to '{target_directory}'")
 
-        files_to_copy = (
-            "app.c",
-            "ident_flags.txt",
-            "main.exe",
-            "main.ihex",
-            "main.srec",
-            "tos_image.xml",
-            "wiring-check.xml",
-        )
-        for name in files_to_copy:
+        # Detect the OS from the presence of one of these files:
+        os_of_build = self._detect_os_of_build(module_path)
+
+        files_to_copy = {
+            "tinyos": (
+                "app.c",
+                "ident_flags.txt",
+                "main.exe",
+                "main.ihex",
+                "main.srec",
+                "tos_image.xml",
+                "wiring-check.xml",
+            ),
+
+            "contiki": (
+                "main.exe",
+                "symbols.h",
+                "symbols.c",
+            ),
+        }
+        for name in files_to_copy[os_of_build]:
             try:
                 src = os.path.join(module_path, "build", self.platform, name)
                 dest = target_directory
