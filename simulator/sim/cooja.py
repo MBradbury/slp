@@ -127,7 +127,7 @@ def cooja_iter(iterable):
             exception += "\n" + line
             continue
 
-        if line.startswith('Exception') :
+        if line.startswith('Exception'):
             exception = line
             continue
 
