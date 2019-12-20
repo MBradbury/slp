@@ -27,7 +27,7 @@ class Runner(object):
 
         print(f'{self.executable} {options} > {name} (overwriting={os.path.exists(name)})')
 
-        with open(local_log, 'w') as log_file, \
+        with open(self.local_log, 'w') as log_file, \
              open(name,'w') as out_file:
             subprocess.call(f"{self.executable} {options}", stdout=out_file, stderr=log_file, shell=True)
 
