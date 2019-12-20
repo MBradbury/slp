@@ -96,7 +96,7 @@ def create_csc(csc, target_directory, a):
         seconds_to_run = configuration.size() * 4.0 * slowest_source_period
 
     # Many algorithms have some sort of setup period, so it is important to allow cooja to consider some time for this
-    # Try getting this value from the algorithm itself, otherwise guess 10 seconds
+    # Try getting this value from the algorithm itself, otherwise guess 15 seconds
     seconds_to_run += getattr(a, "cycle_accurate_setup_period", 15.0)
 
     # See: https://github.com/contiki-os/contiki/wiki/Using-Cooja-Test-Scripts-to-Automate-Simulations
