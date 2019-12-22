@@ -158,6 +158,19 @@ def cooja_iter(iterable):
         raise RuntimeError(f"Cooja exception: '{exception}'")
 
 def print_arguments(module, a):
+    import os
+    import hashlib
+
+    # Log path and hash of binary
+    binary_path = os.path.join(module.replace(".", "/"), "main.exe")
+    if os.path.exists(binary_path):
+        print(f"@binary_path:{binary_path}")
+        with open(binary_path, "rb") as binary_file:
+            print(f"@binary_hash:{hashlib.sha256(binary_file.read()).hexdigest()}")
+            print(f"@binary_stat:{os.stat(binary_file.fileno())}")
+    else:
+        raise RuntimeError(f"Failed to find {binary_path}")
+
     for (k, v) in sorted(vars(a.args).items()):
         if k not in a.arguments_to_hide:
             print("{}={}".format(k, v))
