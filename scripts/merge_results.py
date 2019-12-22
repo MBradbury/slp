@@ -6,9 +6,10 @@ class MergeResults:
 
     _arguments_to_ignore = {'job_size', 'thread_count', 'verbose', 'job_id'}
 
-    def __init__(self, results_dir, merge_dir):
+    def __init__(self, results_dir, merge_dir, dry_run=False):
         self.results_dir = results_dir
         self.merge_dir = merge_dir
+        self.dry_run = dry_run
 
     @classmethod
     def _read_arguments(cls, f):
@@ -94,17 +95,26 @@ class MergeResults:
             print("Merging '{}' with '{}'".format(result_path, other_path))
             print("Creating and writing {}".format(merge_path))
 
-            with open(merge_path, 'w+') as merged_file:
-                self._write_merged_results(out_file, in_file, merged_file)
+            if self.dry_run:
+                print(f"Merging {result_path} and {other_path} to {merge_path}")
+            else:
+                with open(merge_path, 'w+') as merged_file:
+                    self._write_merged_results(out_file, in_file, merged_file)
 
-        os.rename(result_path, backup_path)
-        os.rename(merge_path, result_path)
+        self.rename(result_path, backup_path)
+        self.rename(merge_path, result_path)
 
-        os.rename(other_path, other_path + ".processed")
+        self.rename(other_path, other_path + ".processed")
+
+    def rename(self, src, dest):
+        if self.dry_run:
+            print(f"Renaming {src} -> {dest}")
+        else:
+            os.rename(src, dest)
 
 
-def main(results_dir, to_merge_with_dir):
-    merge = MergeResults(results_dir, to_merge_with_dir)
+def main(results_dir, to_merge_with_dir, dry_run):
+    merge = MergeResults(results_dir, to_merge_with_dir, dry_run=dry_run)
 
     failures = []
 
@@ -126,7 +136,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Result Merger", add_help=True)
     parser.add_argument("--result-dir", type=str, required=True, help="The location of the main results files. The merged results will be stored here.")
     parser.add_argument("--merge-dir", type=str, required=True, help="The location of the results to merge.")
+    parser.add_argument("--dry-run", action='store_true', default=False, help="Perform a dry run first")
 
     args = parser.parse_args(sys.argv[1:])
 
-    main(args.result_dir, args.merge_dir)
+    main(args.result_dir, args.merge_dir, args.dry_run)
