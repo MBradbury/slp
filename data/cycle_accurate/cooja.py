@@ -12,8 +12,10 @@ def platform():
     return [model().platform() for model in CoojaPlatform.models()]
 
 def log_mode():
+    # Use a special Cooja printf log mode.
+    # This involves Cooja monitoring a pointer and when its value
+    # chages, Cooja will print out the string it points to.
     return "cooja"
-    #return "unbuffered_printf"
 
 def url():
     return "http://www.contiki-os.org"
@@ -51,8 +53,8 @@ def create_csc(csc, target_directory, a):
     pcsc('  <project EXPORT="discard">[APPS_DIR]/mrm</project>')
     pcsc('  <project EXPORT="discard">[APPS_DIR]/mspsim</project>')
     pcsc('  <project EXPORT="discard">[APPS_DIR]/avrora</project>')
-    pcsc('  <project EXPORT="discard">[APPS_DIR]/serial_socket</project>')
-    pcsc('  <project EXPORT="discard">[APPS_DIR]/collect-view</project>')
+    #pcsc('  <project EXPORT="discard">[APPS_DIR]/serial_socket</project>')
+    #pcsc('  <project EXPORT="discard">[APPS_DIR]/collect-view</project>')
     pcsc('  <project EXPORT="discard">[APPS_DIR]/powertracker</project>')
     pcsc('  <simulation>')
     pcsc('    <title>My simulation</title>')
