@@ -47,7 +47,7 @@ class RunSimulationsCommon(object):
 
         self._existing_results = {}
 
-    def run(self, repeats, argument_names, argument_product, time_estimator=None, verbose=False, debug=False):
+    def run(self, repeats, argument_names, argument_product, time_estimator=None, verbose=False, debug=False, min_repeats=1):
 
         if len(argument_names) != len(argument_product[0]):
             raise RuntimeError("Number of argument names ({}) does not equal number of arguments ({})".format(
@@ -76,6 +76,10 @@ class RunSimulationsCommon(object):
                 else:
                     print(f"Already gathered {repeats_performed} results for {darguments} so only performing {repeats - repeats_performed}", file=sys.stderr)
                     repeats_to_run -= repeats_performed
+
+                    if repeats_to_run < min_repeats:
+                        print(f"Insufficient repeats are scheduled ({repeats_to_run}), running with {min_repeats} instead.")
+                        repeats_to_run = min_repeats
 
             # Not all drivers will supply job_repeats
             job_repeats = self.driver.job_repeats if hasattr(self.driver, 'job_repeats') else 1

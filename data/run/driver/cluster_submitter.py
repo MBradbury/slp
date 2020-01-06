@@ -3,12 +3,14 @@ from datetime import timedelta
 import os
 import subprocess
 
-class Runner(object):
+class Runner:
     required_safety_periods = True
     
     executable = 'python -OO -X faulthandler run.py'
 
-    def __init__(self, cluster_command, prepare_command, job_thread_count, job_repeats=1, array_job_variable=None, dry_run=False, max_walltime=None):
+    def __init__(self, cluster_command, prepare_command,
+                 job_thread_count, job_repeats=1,
+                 array_job_variable=None, dry_run=False, max_walltime=None):
         self.cluster_command = cluster_command
         self.prepare_command = prepare_command
         self.job_thread_count = job_thread_count
