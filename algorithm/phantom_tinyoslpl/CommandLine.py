@@ -110,7 +110,8 @@ class CLI(CommandLineCommon.CLI):
             'attacker distance': ('Attacker-Source Distance (Meters)', 'left top'),
             #"attacker distance percentage": ('Normalised Attacker Distance (%)', 'left top'),
             'average duty cycle': ('Average Duty Cycle (%)', 'right top'),
-            #'norm(norm(sent,time taken),network size)': ('Messages Sent per Sec per Node', 'left top'),
+            'norm(sent,time taken)': ('Messages Sent per Second', 'left top'),
+            'norm(norm(sent,time taken),num_nodes)': ('Messages Sent per Sec per Node', 'left top'),
         }
 
         lpl_params = self.algorithm_module.extra_parameter_names
@@ -122,12 +123,12 @@ class CLI(CommandLineCommon.CLI):
         ]
 
         custom_yaxis_range_max = {
-            'captured': 35,
+            'captured': 25,
             'received ratio': 100,
             'average duty cycle': 100,
             'normal latency': 3000,
             'attacker distance': 70,
-            #'norm(norm(sent,time taken),network size)': 5,
+            'norm(norm(sent,time taken),num_nodes)': 5,
         }
 
         #custom_yaxis_range_min = {
@@ -163,7 +164,7 @@ class CLI(CommandLineCommon.CLI):
             ylabel_font = "',15'",
             line_width = 3,
             point_size = 1,
-            nokey = False,#True,
+            nokey = True,
             generate_legend_graph = True,
             legend_font_size = 16,
             legend_divisor = 4,
