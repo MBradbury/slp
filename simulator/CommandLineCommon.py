@@ -99,6 +99,7 @@ class CLI(object):
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
         subparser.add_argument("--dry-run", action="store_true", default=False)
         subparser.add_argument("--unhold", action="store_true", default=False, help="By default jobs are submitted in the held state. This argument will submit jobs in the unheld state.")
+        subparser.add_argument("--min-repeats", type=ArgumentsCommon.ArgumentsCommon.type_positive_int, default=1, help="Minimum number of repeats to perform if an insufficient number has been performed thus far")
 
         subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
@@ -636,7 +637,7 @@ class CLI(object):
         return time_after_first_normal
 
     def _execute_runner(self, sim_name, driver, result_path, time_estimator=None,
-                        skip_completed_simulations=True, verbose=False, debug=False):
+                        skip_completed_simulations=True, verbose=False, debug=False, min_repeats=1):
         testbed_name = None
 
         if driver.mode() == "TESTBED":
@@ -698,7 +699,8 @@ class CLI(object):
                        argument_product,
                        time_estimator,
                        verbose=verbose,
-                       debug=debug)
+                       debug=debug,
+                       min_repeats=min_repeats)
         except MissingSafetyPeriodError as ex:
             from pprint import pprint
             import traceback
@@ -1111,7 +1113,8 @@ class CLI(object):
 
             self._execute_runner(args.sim, submitter, cluster_directory,
                                  time_estimator=self._cluster_time_estimator,
-                                 skip_completed_simulations=skip_complete)
+                                 skip_completed_simulations=skip_complete,
+                                 min_repeats=args.min_repeats)
 
         elif 'copy-back' == args.cluster_mode:
             cluster.copy_back(self.algorithm_module.name, args.sim, user=args.user)
