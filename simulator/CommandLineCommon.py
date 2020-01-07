@@ -99,7 +99,7 @@ class CLI(object):
         subparser.add_argument("--no-skip-complete", action="store_true", help="When specified the results file will not be read to check how many results still need to be performed. Instead as many repeats specified in the Parameters.py will be attempted.")
         subparser.add_argument("--dry-run", action="store_true", default=False)
         subparser.add_argument("--unhold", action="store_true", default=False, help="By default jobs are submitted in the held state. This argument will submit jobs in the unheld state.")
-        subparser.add_argument("--min-repeats", type=ArgumentsCommon.ArgumentsCommon.type_positive_int, default=1, help="Minimum number of repeats to perform if an insufficient number has been performed thus far")
+        subparser.add_argument("--min-repeats", type=ArgumentsCommon.ArgumentsCommon.type_positive_int, default=40, help="Minimum number of repeats to perform if an insufficient number has been performed thus far")
 
         subparser = cluster_subparsers.add_parser("copy-back", help="Copies the results off the cluster. WARNING: This will overwrite files in the algorithm's results directory with the same name.")
         subparser.add_argument("sim", choices=submodule_loader.list_available(simulator.sim), help="The simulator you wish to run with.")
