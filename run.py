@@ -200,13 +200,15 @@ def _run_parallel(sim, module, a, argv):
     subprocess_args_100 = subprocess_args_with_seed(subprocess_args, seed=100)
     subprocess_args_44 = subprocess_args_with_seed(subprocess_args, seed=44)
 
+    start_time = datetime.now()
+
     if a.args.mode == "CLUSTER":
         if a.args.job_id is not None:
-            print(f"Starting cluster array job id {a.args.job_id} at {datetime.now()}", file=sys.stderr)
+            print(f"Starting cluster array job id {a.args.job_id} at {start_time}", file=sys.stderr)
         else:
-            print(f"Starting cluster job at {datetime.now()}", file=sys.stderr)
+            print(f"Starting cluster job at {start_time}", file=sys.stderr)
     elif a.args.mode == "PARALLEL":
-        print(f"Starting parallel job at {datetime.now()}", file=sys.stderr)
+        print(f"Starting parallel job at {start_time}", file=sys.stderr)
     else:
         raise RuntimeError(f"Unknown job type of {a.args.mode}")
 
@@ -249,15 +251,19 @@ def _run_parallel(sim, module, a, argv):
     finally:
         job_pool.join()
 
+        end_time = datetime.now()
+
         if a.args.mode == "CLUSTER":
             if a.args.job_id is not None:
-                print(f"Finished cluster array job id {a.args.job_id} at {datetime.now()}", file=sys.stderr)
+                print(f"Finished cluster array job id {a.args.job_id} at {end_time}", file=sys.stderr)
             else:
-                print(f"Finished cluster job at {datetime.now()}", file=sys.stderr)
+                print(f"Finished cluster job at {end_time}", file=sys.stderr)
         elif a.args.mode == "PARALLEL":
-            print(f"Finished parallel job at {datetime.now()}", file=sys.stderr)
+            print(f"Finished parallel job at {end_time}", file=sys.stderr)
         else:
             raise RuntimeError(f"Unknown job type of {a.args.mode}")
+
+        print(f"Time taken: {end_time - start_time}")
 
         sys.stdout.flush()
         sys.stderr.flush()
