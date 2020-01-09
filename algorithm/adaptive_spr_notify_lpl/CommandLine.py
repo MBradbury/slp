@@ -258,8 +258,26 @@ class CLI(CommandLineCommon.CLI):
 
             return baseline_results.data[data_key][src_period][baseline_params]
 
+            # These are the wakeups that need to be graphed
+        valid_wakeups = [
+            (200, 200, 250, 250, 75, 75),
+            (80, 80, 120, 130, 5, 50),
+            (40, 40, 120, 130, 5, 50),
+            (35, 35, 100, 100, 5, 50),
+            (35, 35, 60, 60, 5, 50),
+        ]
+
+        wakeup_names = ('lpl normal early', 'lpl normal late',
+                        'lpl fake early', 'lpl fake late',
+                        'lpl choose early', 'lpl choose late')
+
         def filter_params(all_params):
-            return all_params['source period'] == '0.25' or all_params['network size'] == '5'
+            try:
+                wakeup = tuple(int(all_params[name]) for name in wakeup_names)
+            except KeyError:
+                wakeup = None
+
+            return all_params['source period'] == '0.25' or all_params['network size'] == '5' or (wakeup is not None and wakeup not in valid_wakeups)
 
         self._create_min_max_versus_graph(args.sim, [adaptive_spr_notify_tinyoslpl], adaptive_spr_notify, graph_parameters, varying,
             #testbed=args.testbed,
