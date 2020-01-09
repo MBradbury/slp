@@ -47,3 +47,4 @@ algorithm/*/*.sky
 algorithm/*/*.z1
 *.lint
 *.cmd
+*.micaz
