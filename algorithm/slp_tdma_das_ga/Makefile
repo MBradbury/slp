@@ -10,7 +10,7 @@ CFLAGS += -I ga_headers
 
 CFLAGS += -DTOSH_DATA_LENGTH=40
 
-include ../common/makefile.common
+include ../common/tinyos/makefile.common
 
 #include $(TINYOS_ROOT_DIR)/Makefile.include
 include $(MAKERULES)
