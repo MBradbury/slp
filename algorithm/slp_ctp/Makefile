@@ -9,7 +9,7 @@ CFLAGS += $(SLP_PARAMETER_CFLAGS)
 
 CFLAGS += -I"../common" -I$(TOSDIR)/lib/net -I./ctp -I$(TOSDIR)/lib/net/drip -I./4bitle
 
-include ../common/makefile.common
+include ../common/tinyos/makefile.common
 
 #include $(TINYOS_ROOT_DIR)/Makefile.include
 include $(MAKERULES)

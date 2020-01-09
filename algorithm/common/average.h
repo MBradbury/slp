@@ -1,6 +1,8 @@
 #ifndef SLP_AVERAGE_H
 #define SLP_AVERAGE_H
 
+#include <stdint.h>
+
 void incremental_average(uint32_t* __restrict current_average, uint32_t* __restrict current_seen, uint32_t value)
 {
     if (*current_seen == 0)
