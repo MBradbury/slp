@@ -1,0 +1,34 @@
+
+BOARD := $(WSN_PLATFORM)
+
+# Comment this out to disable code in RIOT that does safety checking
+# which is not needed in a production environment but helps in the
+# development process:
+DEVELHELP ?= 1
+
+# Change this to 0 show compiler invocation lines by default:
+QUIET ?= 1
+
+# Additional Includes
+#CFLAGS += -I"../common" -I"../common/riot"
+
+# Additional warnings
+CFLAGS += -Wall -Wextra -Wnonnull -Wpointer-arith -Wformat=2 -Wfloat-equal -Wno-unused-parameter -Wno-unused-variable
+CFLAGS += -Wsign-compare -fdiagnostics-show-option
+#CFLAGS += -Wno-unused-local-typedefs -Wshadow
+
+#CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
+
+ifndef CYCLEACCURATE
+# The micaz compiler doesn't understand these flags
+# so only enable them when not building for avr
+CFLAGS += -Werror=pointer-sign -Werror=format -Wlogical-op -Wdouble-promotion
+endif
+
+.PHONY: fastserial $(WSN_PLATFORM)
+
+# Included for compatibility with tinyos makefile
+fastserial:
+	
+$(WSN_PLATFORM): all
+	cp bin/$(WSN_PLATFORM)/$(APPLICATION).elf main.exe
