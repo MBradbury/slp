@@ -76,13 +76,14 @@ class CLI(CommandLineCommon.CLI):
             'captured',
             'received ratio',
             'paths reached end',
-            'source dropped',
+            #'source dropped',
             #'path dropped',
             'normal latency',
             'ssd',
             'sent',
             'norm(sent,time taken)',
             'attacker distance',
+            'average duty cycle',
         ]
 
         hide_parameters = []
