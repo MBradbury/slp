@@ -14,7 +14,7 @@ except ImportError:
     from scipy.spatial.distance import euclidean as euclidean2_2d
 
 @total_ordering
-class NodeId(object):
+class NodeId:
     __slots__ = ("nid",)
 
     def __init__(self, nid):
@@ -56,7 +56,7 @@ class IndexId(NodeId):
             nid = nid.nid
         super(IndexId, self).__init__(nid)
 
-class Topology(object):
+class Topology:
     def __init__(self, seed=None):
         self.nodes = OrderedDict()
         self.topology_nid_to_ordered_nid = {}
@@ -158,6 +158,24 @@ class Topology(object):
 
         self.ordered_ids = list(self.nodes.keys())
         self.ordered_ids_reverse_mapping = {nid: IndexId(idx) for (idx, nid) in enumerate(self.ordered_ids)}
+
+class Bag(Topology):
+    def __init__(self, size, distance=None, node_id_order=None, seed=None):
+        super().__init__(seed)
+
+        self.size = size
+        self.distance = 0
+
+        if node_id_order is not None and node_id_order != "topology":
+            raise RuntimeError("node_id_order must be 'topology'")
+
+        for x in range(size):
+            self.nodes[x] = np.array((0, 0), dtype=np.float64)
+
+        self._process_node_id_order("topology")
+
+    def __str__(self):
+        return f"Bag<size={self.size}>"
 
 class Line(Topology):
     def __init__(self, size, distance, node_id_order, seed=None):

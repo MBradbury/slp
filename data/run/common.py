@@ -132,7 +132,7 @@ class RunSimulationsCommon(object):
     def _mode(self):
         mode = self.driver.mode()
 
-        if mode == "TESTBED":
+        if mode in {"TESTBED", "PLATFORM"}:
             return "SINGLE"
         else:
             return mode
@@ -275,7 +275,7 @@ class RunTestbedCommon(RunSimulationsCommon):
 
         # Do all testbed tasks
         # Testbed has no notion of safety period
-        super(RunTestbedCommon, self).__init__(sim_name, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
+        super().__init__(sim_name, driver, algorithm_module, result_path, False, None, safety_period_equivalence)
 
     def run(self, repeats, argument_names, argument_product, time_estimator=None, **kwargs):
 
@@ -289,4 +289,4 @@ class RunTestbedCommon(RunSimulationsCommon):
 
         # Testbed has no notion of repeats
         # Also no need to estimate time
-        super(RunTestbedCommon, self).run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)
+        super().run(None, filtered_argument_names, filtered_argument_product, None, **kwargs)

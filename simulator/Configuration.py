@@ -6,7 +6,9 @@ import numpy as np
 from scipy.sparse.csgraph import shortest_path, csgraph_from_dense
 from scipy.spatial.distance import cdist
 
-from simulator.Topology import Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring, TopologyId, OrderedId, IndexId
+from simulator.Topology import Bag, Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring, TopologyId, OrderedId, IndexId
+
+from data.restricted_eval import restricted_eval
 
 class InvalidSinkError(RuntimeError):
     def __init__(self, sink_id, sink_ids):
@@ -807,9 +809,13 @@ def configuration_rank(configuration):
 def names():
     return [cls.__name__ for cls in configurations()]
 
+class ConfigurationCreateFailError(RuntimeError):
+    def __init__(self, name, args, kwargs):
+        super().__init__(f"Failed to create configuration {name} with args={args} and kwargs={kwargs}")
+
 def try_create_specific(name):
     # The format of this name should be:
-    # <Topology><Source><number><Sink><Number>
+    # <Topology><optional arguments><Source><number><Sink><Number>
 
     import re
 
@@ -820,15 +826,18 @@ def try_create_specific(name):
     from data.testbed.flocklab import FlockLab
 
     available_topologies = [
-        Line, Grid, Circle, Random, SimpleTree, Ring,
+        Bag, Line, Grid, Circle, Random, SimpleTree, Ring,
         Euratech, Rennes, Indriya, Twist, FlockLab
     ]
 
-    match = re.match(r"^([A-Za-z]+)Source([0-9]+)Sink([0-9]+)$", name)
+    match = re.match(r"^([A-Za-z]+)(\(.*\))?Source([0-9]+)Sink([0-9]+)$", name)
     if not match:
         raise RuntimeError(f"Unable to parse configuration name {name}")
 
-    (topology_name, source_id, sink_id) = match.groups()
+    (topology_name, topology_args, source_id, sink_id) = match.groups()
+
+    if topology_args is None:
+        topology_args = "()"
 
     topology_classes = [t for t in available_topologies if t.__name__ == topology_name]
 
@@ -837,12 +846,12 @@ def try_create_specific(name):
     if len(topology_classes) != 1:
         raise RuntimeError(f"Too many topologies called {topology_name}?")
 
-    topology_class = topology_classes[0]
+    topology = restricted_eval(f"{topology_name}{topology_args}", topology_classes)
 
     class NewConfiguration(Configuration):
         def __init__(self, *args, **kwargs):
             super().__init__(
-                topology_class(),
+                topology,
                 source_ids={int(source_id)},
                 sink_ids={int(sink_id)},
                 space_behind_sink=False
@@ -864,14 +873,17 @@ def create_specific(name, *args, **kwargs):
         try:
             conf_class = try_create_specific(name)
         except BaseException as ex:
-            raise RuntimeError(f"No configurations were found using the name {name}. Tried to create a Configuration, but this failed.", ex)
+            raise RuntimeError(f"No configurations were found using the name {name}. Tried to create a Configuration, but this failed.") from ex
     else:
         conf_class = confs[0]
 
     try:
         return conf_class(*args, **kwargs)
     except TypeError:
-        return conf_class(*args)
+        try:
+            return conf_class(*args)
+        except TypeError as ex:
+            raise ConfigurationCreateFailError(name, args, kwargs) from ex
 
 def create(name, args):
     req_attrs = ("network_size", "distance", "node_id_order")

@@ -43,7 +43,7 @@ inline double rad2deg(double r)
 }
 
 // Disable using assert when running on real hardware 
-#if defined(TESTBED) || defined(CYCLEACCURATE)
+#if defined(TESTBED) || defined(CYCLEACCURATE) || defined(PLATFORM)
 #	define assert(cond) do { if(!(cond)) { ERROR_OCCURRED(ERROR_ASSERT, "Assert: " STRINGIFY(cond) "\n"); } } while(FALSE)
 #	define __builtin_unreachable() ERROR_OCCURRED(ERROR_REACHED_UNREACHABLE, "In " __FILE__ " at " STRINGIFY(__LINE__) "\n")
 #else

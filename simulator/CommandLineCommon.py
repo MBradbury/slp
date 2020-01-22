@@ -25,6 +25,7 @@ import simulator.CoojaRadioModel as CoojaRadioModel
 
 from data import results, latex, submodule_loader
 from data.run.common import MissingSafetyPeriodError
+from data.run.driver import platform_builder
 
 import data.clusters as clusters
 import data.cycle_accurate
@@ -132,6 +133,19 @@ class CLI(object):
         subparser.add_argument("-S", "--headers-to-skip", nargs="*", metavar="H", help="The headers you want to skip analysis of.")
         subparser.add_argument("-K", "--keep-if-hit-upper-time-bound", action="store_true", default=False, help="Specify this flag if you wish to keep results that hit the upper time bound.")
         subparser.add_argument("--flush", action="store_true", default=False, help="Flush any cached results.")
+
+        ###
+
+        subparser = self._add_argument("platform", self._run_platform)
+        subparser.add_argument("name", type=str, choices=platform_builder.PLATFORM_TOOLS.keys(), help="This is the name of the platform")
+
+        platform_subparsers = subparser.add_subparsers(title="platform mode", dest="platform_mode")
+
+        subparser = platform_subparsers.add_parser("build", help="Build the binaries used to be deployed to nodes of a specific platform. One set of binaries will be created per parameter combination you request.")
+        subparser.add_argument("-g", "--generate-per-node-id-binary", default=False, action="store_true")
+        subparser.add_argument("--log-mode", choices=platform_builder.LOG_MODES.keys(), required=True)
+        subparser.add_argument("-v", "--verbose", default=False, action="store_true", help="Produce verbose logging output from the testbed binaries")
+        subparser.add_argument("--debug", default=False, action="store_true", help="Build debug binaries")
 
         ###
 
@@ -640,9 +654,10 @@ class CLI(object):
                         skip_completed_simulations=True, verbose=False, debug=False, min_repeats=1):
         testbed_name = None
 
-        if driver.mode() == "TESTBED":
+        if driver.mode() in {"TESTBED", "PLATFORM"}:
             from data.run.common import RunTestbedCommon as RunSimulations
-            testbed_name = driver.testbed_name()
+            if driver.mode() == "TESTBED":
+                testbed_name = driver.testbed_name()
         else:
             # Time for something very crazy...
             # Some simulations require a safety period that varies depending on
@@ -1132,7 +1147,7 @@ class CLI(object):
         if 'build' == args.testbed_mode:
             from data.run.driver.testbed_builder import Runner as Builder
 
-            print("Removing existing testbed directory and creating a new one")
+            print(f"Removing existing testbed directory {testbed_directory} and creating a new one")
             recreate_dirtree(testbed_directory)
 
             builder = Builder(testbed, platform=args.platform)
@@ -1167,6 +1182,28 @@ class CLI(object):
 
         elif 'analyse' == args.testbed_mode:
             self._run_testbed_analyse(testbed, args)
+
+        sys.exit(0)
+
+    def _run_platform(self, args):
+        platform = args.name
+
+        platform_directory = os.path.join("platform", platform, self.algorithm_module.name)
+
+        if 'build' == args.platform_mode:
+            from data.run.driver.platform_builder import Runner as Builder
+
+            print(f"Removing existing platform directory {platform_directory} and creating a new one")
+            recreate_dirtree(platform_directory)
+
+            builder = Builder(platform, args.log_mode,
+                              generate_per_node_id_binary=args.generate_per_node_id_binary)
+
+            self._execute_runner("real", builder, platform_directory,
+                                 time_estimator=None,
+                                 skip_completed_simulations=False,
+                                 verbose=args.verbose,
+                                 debug=args.debug)
 
         sys.exit(0)
 
