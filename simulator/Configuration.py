@@ -6,7 +6,9 @@ import numpy as np
 from scipy.sparse.csgraph import shortest_path, csgraph_from_dense
 from scipy.spatial.distance import cdist
 
-from simulator.Topology import Bag, Line, Grid, Circle, Random, RandomPoissonDisk, SimpleTree, Ring, TopologyId, OrderedId, IndexId
+from simulator.Topology import Bag, Line, Grid, Circle, Random, \
+                               RandomPoissonDisk, RandomPoissonDiskWithHole, \
+                               SimpleTree, Ring, TopologyId, OrderedId, IndexId
 
 from data.restricted_eval import restricted_eval
 
@@ -732,6 +734,23 @@ class RandomPoissonDiskConnectedSeed2(Configuration):
             random,
             source_ids={len(random.nodes) - 1},
             sink_ids={len(random.nodes) // 2},
+            space_behind_sink=True
+        )
+
+class RandomPoissonDiskWithHoleConnectedSeed2(Configuration):
+    def __init__(self, *args, **kwargs):
+        new_kwargs = {**kwargs, "seed": 2}
+        try:
+            random = RandomPoissonDiskWithHole(*args, **new_kwargs)
+        except TypeError:
+            # Try without seed in args
+            random = RandomPoissonDiskWithHole(*args[:-1], **new_kwargs)
+
+        # Same sink/source location as with RandomPoissonDiskConnectedSeed2
+        super().__init__(
+            random,
+            source_ids={(len(random.nodes) + random.removed_nodes) - 1},
+            sink_ids={(len(random.nodes) + random.removed_nodes) // 2},
             space_behind_sink=True
         )
 

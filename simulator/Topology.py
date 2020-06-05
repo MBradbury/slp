@@ -57,6 +57,8 @@ class IndexId(NodeId):
         super(IndexId, self).__init__(nid)
 
 class Topology:
+    _allow_nid_skip = object()
+
     def __init__(self, seed=None):
         self.nodes = OrderedDict()
         self.topology_nid_to_ordered_nid = {}
@@ -125,6 +127,9 @@ class Topology:
         return self.ordered_ids[raw_node_idx]
 
     def _process_node_id_order(self, node_id_order):
+        if node_id_order is self._allow_nid_skip:
+            return
+
         if node_id_order == "topology":
 
             self.topology_nid_to_ordered_nid = {TopologyId(nid): OrderedId(nid) for nid in self.nodes.keys()}
@@ -380,3 +385,37 @@ class RandomPoissonDisk(Topology):
 
     def __str__(self):
         return f"RandomPoissonDisk<seed={self.seed},network_size={self.size},area={self.area}>"
+
+class RandomPoissonDiskWithHole(RandomPoissonDisk):
+    def __init__(self, network_size, distance, node_id_order, seed=None):
+        super().__init__(network_size, distance, self._allow_nid_skip, seed)
+
+        # Find a node and remove any nodes with a certain range of it
+        # Find midpoint of nodes, remove nodes in this region
+
+        xs, ys = zip(*self.nodes.values())
+
+        x_min, x_max = min(xs), max(xs)
+        y_min, y_max = min(ys), max(ys)
+
+        x = (x_max - x_min) / 2
+        y = (y_max - y_min) / 2
+
+        c = np.array((x, y), dtype=np.float64)
+
+        r = distance * 2
+
+        num_nodes = len(self.nodes)
+
+        self.nodes = {
+            i: coord
+            for (i, coord) in self.nodes.items()
+            if euclidean2_2d(coord, c) > r
+        }
+
+        self.removed_nodes = num_nodes - len(self.nodes)
+
+        self._process_node_id_order(node_id_order)
+
+    def __str__(self):
+        return f"RandomPoissonDiskWithHoles<seed={self.seed},network_size={self.size},area={self.area}>"
