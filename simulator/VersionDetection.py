@@ -21,10 +21,10 @@ def java_version():
 
 def slp_algorithms_version():
     try:
-        ver = subprocess.check_output("hg id -n -i -b -t", shell=True)
+        ver = subprocess.check_output("git rev-parse HEAD", shell=True)
         ver = ver.decode("utf-8").strip()
     except subprocess.CalledProcessError:
-        ver = "<unknown hg rev>"
+        ver = "<unknown slp git rev>"
 
     return ver
 
