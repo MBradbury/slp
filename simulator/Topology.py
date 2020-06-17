@@ -403,7 +403,7 @@ class RandomPoissonDiskWithHole(RandomPoissonDisk):
 
         c = np.array((x, y), dtype=np.float64)
 
-        r = distance * 1.75
+        r = distance * 1.5
 
         num_nodes = len(self.nodes)
 
