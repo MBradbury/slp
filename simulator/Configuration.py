@@ -754,6 +754,40 @@ class RandomPoissonDiskWithHoleConnectedSeed2(Configuration):
             space_behind_sink=True
         )
 
+
+class RandomPoissonDiskConnectedCons(Configuration):
+    def __init__(self, *args, **kwargs):
+        new_kwargs = {**kwargs, "seed": 3}
+        try:
+            random = RandomPoissonDisk(*args, **new_kwargs)
+        except TypeError:
+            # Try without seed in args
+            random = RandomPoissonDisk(*args[:-1], **new_kwargs)
+
+        super().__init__(
+            random,
+            source_ids={94},
+            sink_ids={60},
+            space_behind_sink=True
+        )
+
+class RandomPoissonDiskWithHoleCons(Configuration):
+    def __init__(self, *args, **kwargs):
+        new_kwargs = {**kwargs, "seed": 3}
+        try:
+            random = RandomPoissonDiskWithHole(*args, **new_kwargs)
+        except TypeError:
+            # Try without seed in args
+            random = RandomPoissonDiskWithHole(*args[:-1], **new_kwargs)
+
+        # Same sink/source location as with RandomPoissonDiskConnectedSeed2
+        super().__init__(
+            random,
+            source_ids={94},
+            sink_ids={60},
+            space_behind_sink=True
+        )
+
 class IndriyaOneFloorSrc31Sink15(Configuration):
     def __init__(self):
         from data.testbed.indriya import Indriya
