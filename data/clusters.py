@@ -60,9 +60,10 @@ class ClusterCommon(object):
             with open(os.path.expanduser("~/.ssh/config"), "r") as ssh_config_file:
                 ssh_config.parse(ssh_config_file)
 
-            lookup = ssh_config.lookup(self.name())
-
-            user = lookup['user']
+            try:
+                user = ssh_config.lookup(self.name())['user']
+            except KeyError:
+                user = ssh_config.lookup(self.url)['user']
 
             print(f"Using the username '{user}' from your '~/.ssh/config'. Rerun with the --user option to override this.")
 
@@ -194,6 +195,37 @@ class ClusterCommon(object):
 
         return Submitter(cluster_command, prepare_command, self.ppn, job_repeats=1, dry_run=dry_run, max_walltime=self.max_walltime)
 
+    def _slurm_submitter(self, sim_name, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
+        from data.run.driver.cluster_submitter import Runner as Submitter
+
+        ram_to_ask_for_mb = self._ram_to_ask_for()
+
+        arguments = [
+            f"--nodes=1",
+            f"--cpus-per-task={self.ppn}",
+            f"--time={{}}",
+            f"--mem-per-cpu={ram_to_ask_for_mb}mb",
+            f"--job-name=\"{{}}\"",
+        ]
+
+        # The --hold flags causes the jobs to be submitted as held. It will need to be released before it is run.
+        if not unhold:
+            arguments.append("--hold")
+
+        if notify_emails is not None and len(notify_emails) > 0:
+            arguments.append(f"--mail-user={','.join(notify_emails)}")
+            arguments.append("--mail-type=END,FAIL")
+
+        # Don't provide a queue, as the job will be routed to the correct place.
+        cluster_command = "sbatch " + " ".join(arguments)
+
+        prepare_command = self._get_prepare_command(sim_name, "")
+
+        return Submitter(cluster_command, prepare_command, self.ppn,
+                         job_repeats=1,
+                         dry_run=dry_run,
+                         max_walltime=self.max_walltime)
+
 
 class dummy(ClusterCommon):
     def __init__(self):
@@ -264,7 +296,7 @@ class dummy(ClusterCommon):
 
 class flux(ClusterCommon):
     def __init__(self):
-        super(flux, self).__init__("pbs", "flux.dcs.warwick.ac.uk", "ssh",
+        super().__init__("pbs", "flux.dcs.warwick.ac.uk", "ssh",
             ppn=12,
             tpp=1, # HT is disabled
             rpn=(32 * 1024) / 12, # 32GB per node
@@ -291,7 +323,7 @@ class flux(ClusterCommon):
 
 class apocrita(ClusterCommon):
     def __init__(self):
-        super(apocrita, self).__init__("sge", "frontend1.apocrita.hpc.qmul.ac.uk", "ssh",
+        super().__init__("sge", "frontend1.apocrita.hpc.qmul.ac.uk", "ssh",
             ppn=12,
             tpp=4,
             rpn=2 * 1024
@@ -302,7 +334,7 @@ class apocrita(ClusterCommon):
 
 class tinis(ClusterCommon):
     def __init__(self):
-        super(tinis, self).__init__("pbs", "tinis.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
+        super().__init__("pbs", "tinis.csc.warwick.ac.uk", f"ssh -i {os.path.expanduser('~/.ssh/id_rsa')}",
             ppn=16,
             tpp=1,
             rpn=(64 * 1024) / 16 # 64GB per node
@@ -313,7 +345,7 @@ class tinis(ClusterCommon):
 
 class orac(ClusterCommon):
     def __init__(self):
-        super(orac, self).__init__("slurm", "orac.csc.warwick.ac.uk", os.path.expanduser("ssh -i ~/.ssh/id_rsa"),
+        super().__init__("slurm", "orac.csc.warwick.ac.uk", f"ssh -i {os.path.expanduser('~/.ssh/id_rsa')}",
             ppn=28,
             tpp=1,
             rpn=(128 * 1024) / 28 # 128GB per node
@@ -321,6 +353,37 @@ class orac(ClusterCommon):
 
     def submitter(self, *args, **kwargs):
         return self._moab_submitter(*args, **kwargs)
+
+class emu(ClusterCommon):
+    def __init__(self):
+        # kudu cannot be directly accessed, so need to go via grace "grace-01.dcs.warwick.ac.uk"
+        # ~/.ssh/config will need to be set up like:
+        """
+        Host grace
+        HostName grace-01.dcs.warwick.ac.uk
+        User bradbury
+        IdentityFile ~/.ssh/id_rsa
+        PreferredAuthentications publickey
+
+        Host kudu
+        HostName kudu.dcs.warwick.ac.uk
+        ProxyCommand ssh -W %h:%p grace
+        User <username>
+        IdentityFile ~/.ssh/id_rsa
+        PreferredAuthentications publickey
+        """
+
+        super().__init__("slurm", "kudu", "ssh",
+            ppn=20,
+            tpp=1,
+            rpn=(64 * 1024) / 20, # 64GB per node
+            max_walltime=timedelta(hours=48)
+        )
+
+        self.java_prepare_command = True
+
+    def submitter(self, *args, **kwargs):
+        return self._slurm_submitter(*args, **kwargs)
 
 def available():
     """A list of the names of the available clusters."""
