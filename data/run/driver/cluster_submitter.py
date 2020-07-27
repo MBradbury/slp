@@ -29,6 +29,8 @@ class Runner:
 
         module = target_directory.replace("/", ".")
 
+        preamble = "#!/bin/bash\n"
+
         if estimated_time is None:
             estimated_time = self.max_walltime
 
@@ -72,7 +74,7 @@ class Runner:
         # single quotes
         precommand = precommand.replace("'", "'\\''")
 
-        command = f'echo \'{precommand}\' | {cluster_command}'
+        command = f'echo \'{preamble}{precommand}\' | {cluster_command}'
 
         self._submit_job(command)
 

@@ -198,13 +198,13 @@ class ClusterCommon(object):
     def _slurm_submitter(self, sim_name, notify_emails=None, dry_run=False, unhold=False, *args, **kwargs):
         from data.run.driver.cluster_submitter import Runner as Submitter
 
-        ram_to_ask_for_mb = self._ram_to_ask_for() / self.ppn
+        ram_to_ask_for_mb = self._ram_to_ask_for(ram_for_os_mb=6 * 1024)
 
         arguments = [
             f"--nodes=1",
             f"--cpus-per-task={self.ppn}",
             f"--time={{}}",
-            f"--mem-per-cpu={ram_to_ask_for_mb}M",
+            f"--mem={ram_to_ask_for_mb}M",
             f"--job-name=\"{{}}\"",
         ]
 
