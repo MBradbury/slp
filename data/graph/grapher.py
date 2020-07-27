@@ -94,6 +94,22 @@ class AttackerNameShortener:
     def short_name(self):
         return re.sub(r"message_detect='within_range\(([0-9.]+)\)'", r"md=wr(\1)", self.attacker.short_name())
 
+class ConfigurationNameShortener:
+    def __init__(self, configuration):
+        self.configuration = configuration
+
+    def __str__(self):
+        return self.configuration
+
+    def short_name(self):
+        try:
+            return {
+                "RandomPoissonDiskConnectedCons": "RPDConnCons",
+                "RandomPoissonDiskWithHoleCons": "RPDWithHoleCons",
+            }[self.configuration]
+        except KeyError:
+            return self.configuration
+
 class GrapherBase(object):
     def __init__(self, sim_name, output_directory):
         self.output_directory = output_directory
@@ -112,6 +128,7 @@ class GrapherBase(object):
             'fault model': FaultModel.eval_input,
             'radio model': CoojaRadioModel.eval_input,
             'approach': ApproachNameShortener,
+            'configuration': ConfigurationNameShortener,
         }
 
         key_values = list(key_values)
