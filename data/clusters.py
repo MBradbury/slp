@@ -204,7 +204,7 @@ class ClusterCommon(object):
             f"--nodes=1",
             f"--cpus-per-task={self.ppn}",
             f"--time={{}}",
-            f"--mem-per-cpu={ram_to_ask_for_mb}mb",
+            f"--mem-per-cpu={ram_to_ask_for_mb}M",
             f"--job-name=\"{{}}\"",
         ]
 
