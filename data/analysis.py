@@ -332,6 +332,7 @@ class Analyse(object):
         self.opts = {}
 
         all_headings = []
+        skip_lines = []
 
         self.normalised_columns = None
 
@@ -372,6 +373,15 @@ class Analyse(object):
                     all_headings = line[1:].split('|')
                     hash_line_number = line_number
 
+        skip_lines.extend(list(range(line_number)))
+
+        with open(infile_path, 'r') as infile:
+            # Look for bad lines to skip
+            for i, line in enumerate(infile):
+                if line.startswith('Time taken'):
+                    skip_lines.append(i)
+
+
         if line_number == 0 or line_number == hash_line_number:
             raise EmptyFileError(infile_path)
 
@@ -403,7 +413,7 @@ class Analyse(object):
             names=all_headings, header=None,
             usecols=self.unnormalised_headings,
             sep='|',
-            skiprows=line_number - 1,
+            skiprows=skip_lines,
             comment='@',
             dtype=self.HEADING_DTYPES, converters=converters,
             compression=None,
