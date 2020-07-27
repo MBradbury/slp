@@ -3,6 +3,8 @@
 import simulator.Configuration as Configuration
 from simulator.ArgumentsCommon import ArgumentsCommon
 
+import subprocess
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -10,7 +12,7 @@ source_colour = "#006400"
 sink_colour = "#00008B"
 node_colour = "#1E90FF"
 
-def main(configuration):
+def main(configuration, show):
     print(configuration.topology.nodes)
 
     items = configuration.topology.nodes.items()
@@ -20,17 +22,30 @@ def main(configuration):
     rest_lxy = [(k, v[0], v[1]) for (k, v) in items if k not in configuration.sink_ids | configuration.source_ids]
 
     ls, xs, ys = zip(*source_lxy)
-    plt.scatter(xs, ys, label="Source", c=source_colour)
+    plt.scatter(xs, ys, label="Source", c=source_colour, marker=(5, 0, 0), s=169)
 
     ls, xs, ys = zip(*sink_lxy)
-    plt.scatter(xs, ys, label="Sink", c=sink_colour)
+    plt.scatter(xs, ys, label="Sink", c=sink_colour, marker=(6, 0, 90), s=169)
 
     ls, xs, ys = zip(*rest_lxy)
-    plt.scatter(xs, ys, label="Node", c=node_colour)
+    plt.scatter(xs, ys, label="Node", c=node_colour, marker=".", s=169)
 
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=3)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, +1.125), ncol=3)
 
-    plt.show()
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.gca().invert_yaxis()
+
+    plt.xlabel("X coordinate")
+    plt.ylabel("Y coordinate")
+
+    name = f"configuration-{type(configuration).__name__}.pdf"
+
+    plt.savefig(name)
+
+    subprocess.run(f"pdfcrop '{name}' '{name}'", shell=True, check=True)
+
+    if show:
+        plt.show()
 
 if __name__ == "__main__":
     import sys
@@ -61,6 +76,8 @@ if __name__ == "__main__":
                         default="topology",
                         help="With 'topology' node id orders are the same as the topology defines. 'randomised' causes the node ids to be randomised."),
 
+    parser.add_argument("--show", default=False, action="store_true")
+
     args = parser.parse_args()
 
     configuration = Configuration.create_specific(
@@ -70,4 +87,4 @@ if __name__ == "__main__":
         args.node_id_order,
         seed=args.seed)
 
-    main(configuration)
+    main(configuration, show=args.show)
