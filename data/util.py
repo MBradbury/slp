@@ -79,8 +79,13 @@ def scalar_extractor(x, key=None):
         try:
             if key is None:
                 return x['mean']
-            else:
+            if key in x:
                 return x[key]['mean']
+            else:
+                # Try getting only item
+                (i,) = x.items()
+
+                return i[1]['mean']
         except KeyError:
             print(x)
             raise
